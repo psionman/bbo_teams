@@ -1,0 +1,33 @@
+[project]
+name = "bbo_teams"
+version = "0.0.0"
+description = "Set up BBO teams table"
+authors = [
+    {name = "Jeff Watkins", email = "jeffwatkins2000@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "clipboard>=0.0.4",
+    "dotenv>=0.9.9",
+    "platformdirs>=4.13.0",
+    "psiutils>=1.0.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "jedi>=0.19.2",
+    "ruff>=0.11.0",
+]
+
+[build-system]
+requires = ['uv-build']
+build-backend = 'uv_build'
+
+[tool.ruff]
+line-length = 79
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "B", "UP"]

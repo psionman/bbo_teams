@@ -1,0 +1,3 @@
+data_directory = "/home/jeff/.local/share/<app_name>"
+xxx = 6
+geometry = {'frm_main': '500x600', 'frm_config': '700x300'}
