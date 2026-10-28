@@ -2,23 +2,20 @@
 
 """Config for BBO Team setup."""
 
+from pathlib import Path
+
 from psiconfig import ConfigField, TomlConfig
 
 from bbo_teams.constants import CONFIG_PATH, USER_DATA_DIR
-
 
 # FIELDS for config, and to create tkinter variables in frm_config.py
 # e.g. self.data_directory is a tk.StringVar
 FIELDS = {
     "data_directory": ConfigField(str, USER_DATA_DIR),
+    "teams_directory": ConfigField(str, str(Path.home())),
 }
 
-DEFAULT_CONFIG = {
-    "geometry": {
-        "frm_main": "500x600",
-        "frm_config": "700x300",
-    },
-}
+DEFAULT_CONFIG = {}
 
 for name, field in FIELDS.items():
     DEFAULT_CONFIG[name] = field.default_value

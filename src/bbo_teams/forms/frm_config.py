@@ -10,11 +10,10 @@ from psiutils.utilities import restore_geometry, window_resize
 
 from bbo_teams import logger
 from bbo_teams.buttons import ButtonFrame, IconButton
-from bbo_teams.config import config, FIELDS, save_config
+from bbo_teams.config import FIELDS, config, save_config
 from bbo_teams.constants import APP_TITLE, DEFAULT_GEOMETRY
 from bbo_teams.state import state
 from bbo_teams.text import Text
-
 
 txt = Text()
 
@@ -23,6 +22,7 @@ class ConfigFrame:
     """
     A configuration dialog for editing application settings.
     """
+
     def __init__(self, parent: tk.Frame) -> None:
         self.root = tk.Toplevel(parent.root)
         self.parent = parent
@@ -84,6 +84,18 @@ class ConfigFrame:
         )
         button.grid(row=row, column=2, padx=PAD)
 
+        row += 1
+        label = ttk.Label(frame, text="Teams directory")
+        label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
+
+        entry = ttk.Entry(frame, textvariable=self.teams_directory)
+        entry.grid(row=row, column=1, sticky=tk.EW)
+
+        button = IconButton(
+            frame, txt.OPEN, "open-folder", self._get_teams_directory
+        )
+        button.grid(row=row, column=2, padx=PAD, pady=PAD)
+
         return frame
 
     def _button_frame(self, master: tk.Frame) -> tk.Frame:
@@ -110,6 +122,11 @@ class ConfigFrame:
         directory = self._get_directory(self.data_directory.get())
         if directory:
             self.data_directory.set(directory)
+
+    def _get_teams_directory(self, *args) -> None:
+        directory = self._get_directory(self.teams_directory.get())
+        if directory:
+            self.teams_directory.set(directory)
 
     def _get_directory(self, default: str) -> str:
         """
