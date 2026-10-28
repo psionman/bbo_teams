@@ -4,7 +4,6 @@ from bbo_teams.workbook import get_named_range_values
 
 def get_match_data(path: str) -> Match:
     named_ranges = get_named_range_values(path)
-    print(named_ranges)
     match = Match()
     named_ranges = get_named_range_values(path)
 
@@ -12,28 +11,28 @@ def get_match_data(path: str) -> Match:
     match.opponents_club_name = named_ranges["opposition_club"]
     match.match_date = named_ranges["match_date"]
 
-    match.our_players = []
-    match.opps_players = []
+    match.our_pairs = []
+    match.opps_pairs = []
     for i in range(4):
-        match.our_players.append(
+        match.our_pairs.append(
             Pair(
-                north_south=Player(
+                player_a=Player(
                     name=named_ranges["our_players"][i][0],
                     username=named_ranges["our_players"][i][1],
                 ),
-                east_west=Player(
+                player_b=Player(
                     name=named_ranges["our_players"][i][2],
                     username=named_ranges["our_players"][i][3],
                 ),
             )
         )
-        match.opps_players.append(
+        match.opps_pairs.append(
             Pair(
-                north_south=Player(
+                player_a=Player(
                     name=named_ranges["opps_players"][i][0],
                     username=named_ranges["opps_players"][i][1],
                 ),
-                east_west=Player(
+                player_b=Player(
                     name=named_ranges["opps_players"][i][2],
                     username=named_ranges["opps_players"][i][3],
                 ),

@@ -21,12 +21,38 @@ worksheet_path = (
     "/home/jeff/Documents/Bridge/NBC/20261013/NBC_BR_Tigers_20261013.xlsx"
 )
 
+OUR_TEAM = 0
+OPPONENTS_TEAM = 1
+
+
+OPPS_SEAT_PLANS = {
+    0: {
+        0: [1, 0],
+        1: [3, 2],
+    },
+    1: {
+        0: [0, 1],
+        1: [2, 3],
+    },
+    2: {
+        0: [3, 2],
+        1: [1, 0],
+    },
+    3: {
+        0: [2, 3],
+        1: [0, 1],
+    },
+}
+
 
 class AppFrame:
     """Create AppFrame for BBO Team setup application."""
 
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
+
+        self.our_pairs = []
+        self.opps_pairs = []
 
         # tk variables
         self.workbook_path = tk.StringVar(value="")
@@ -37,6 +63,14 @@ class AppFrame:
         self.our_pairs_usernames = [tk.StringVar(value="") for _ in range(8)]
         self.opps_pairs_names = [tk.StringVar(value="") for _ in range(8)]
         self.opps_pairs_usernames = [tk.StringVar(value="") for _ in range(8)]
+        self.round_number = tk.IntVar()
+        self.round_display = tk.IntVar()
+        self.section_number = tk.IntVar()
+        self.section_display = tk.IntVar()
+        self.section_seats_N = [tk.StringVar(value="") for team in range(2)]
+        self.section_seats_S = [tk.StringVar(value="") for team in range(2)]
+        self.section_seats_E = [tk.StringVar(value="") for team in range(2)]
+        self.section_seats_W = [tk.StringVar(value="") for team in range(2)]
 
         # Trace
         self.workbook_path.trace_add("write", self._value_changed)
@@ -119,7 +153,118 @@ class AppFrame:
         players_frame.grid(row=row, column=0, columnspan=2, sticky=tk.EW)
 
         row += 1
+        round_number_frame = self._round_number_frame(frame)
+        round_number_frame.grid(row=row, column=0, columnspan=2, sticky=tk.W)
+
+        row += 1
+        round_display_frame = self._round_display_frame(frame)
+        round_display_frame.grid(row=row, column=1, columnspan=2, sticky=tk.EW)
+
+        row += 1
+        round_seats_frame = self._round_seats_frame(frame, OUR_TEAM)
+        round_seats_frame.grid(row=row, column=0, sticky=tk.W)
+
+        round_seats_frame = self._round_seats_frame(frame, OPPONENTS_TEAM)
+        round_seats_frame.grid(row=row, column=1, sticky=tk.W)
+
+        row += 1
         frame.rowconfigure(row, weight=1)
+
+        return frame
+
+    def _round_number_frame(self, master: tk.Frame) -> tk.Frame:
+        frame = ttk.Frame(master)
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=1)
+
+        row = 0
+        column = 0
+        label = ttk.Label(frame, text="Round number")
+        label.grid(row=row, column=column, sticky=tk.E, padx=PAD, pady=PAD)
+        column += 1
+        for round in range(4):
+            button = ttk.Radiobutton(
+                frame,
+                text=round + 1,
+                variable=self.round_number,
+                value=round,
+                command=self._on_round_number_change,
+            )
+            button.grid(
+                row=row, column=column, sticky=tk.W, padx=PAD, pady=PAD
+            )
+            column += 1
+
+        row += 1
+        column = 0
+        label = ttk.Label(frame, text="Section number")
+        label.grid(row=row, column=column, sticky=tk.E, padx=PAD, pady=PAD)
+        column += 1
+        for section in range(2):
+            button = ttk.Radiobutton(
+                frame,
+                text=section + 1,
+                variable=self.section_number,
+                value=section,
+                command=self._on_round_number_change,
+            )
+            button.grid(
+                row=row, column=column, sticky=tk.W, padx=PAD, pady=PAD
+            )
+            column += 1
+
+        row += 1
+
+        return frame
+
+    def _round_display_frame(self, master: tk.Frame) -> tk.Frame:
+        frame = ttk.Frame(master)
+
+        row = 0
+        column = 0
+        label = ttk.Label(frame, text="Round", font=("Arial", 16))
+        label.grid(row=row, column=column, padx=PAD, pady=PAD)
+
+        column += 1
+        label = ttk.Label(
+            frame,
+            textvariable=self.round_display,
+            font=("Arial", 16),
+            style="red-fg.TLabel",
+        )
+        label.grid(row=row, column=column, padx=PAD, pady=PAD)
+
+        column += 1
+        label = ttk.Label(frame, text="Section", font=("Arial", 16))
+        label.grid(row=row, column=column, padx=PAD, pady=PAD)
+
+        column += 1
+        label = ttk.Label(
+            frame,
+            textvariable=self.section_display,
+            font=("Arial", 16),
+            style="red-fg.TLabel",
+        )
+        label.grid(row=row, column=column, padx=PAD, pady=PAD)
+        return frame
+
+    def _round_seats_frame(self, master: tk.Frame, team: int) -> tk.Frame:
+        frame = ttk.Frame(master)
+
+        row = 0
+        label = ttk.Label(frame, textvariable=self.section_seats_N[team])
+        label.grid(row=row, column=0, columnspan=2, padx=PAD, pady=PAD)
+
+        row += 1
+        label = ttk.Label(frame, textvariable=self.section_seats_E[team])
+        label.grid(row=row, column=0, sticky=tk.W, padx=PAD, pady=PAD)
+
+        label = ttk.Label(frame, textvariable=self.section_seats_W[team])
+        label.grid(row=row, column=1, sticky=tk.W, padx=PAD, pady=PAD)
+
+        row += 1
+        label = ttk.Label(frame, textvariable=self.section_seats_S[team])
+        label.grid(row=row, column=0, columnspan=2, padx=PAD, pady=PAD)
 
         return frame
 
@@ -203,20 +348,58 @@ class AppFrame:
         self.club_name.set(match.club_name)
         self.opponents_club_name.set(match.opponents_club_name)
         self.match_date.set(match.match_date.strftime("%d %B %Y"))
+        self.our_pairs = match.our_pairs
+        self.opps_pairs = match.opps_pairs
 
         # Populate our pairs
-        for i, pair in enumerate(match.our_players):
-            self.our_pairs_names[i * 2].set(pair.north_south.name)
-            self.our_pairs_names[i * 2 + 1].set(pair.east_west.name)
-            self.our_pairs_usernames[i * 2].set(pair.north_south.username)
-            self.our_pairs_usernames[i * 2 + 1].set(pair.east_west.username)
+        # print(f"our_pairs: {match.our_pairs}")
+        for i, pair in enumerate(match.our_pairs):
+            self.our_pairs_names[i * 2].set(pair.player_a.name)
+            self.our_pairs_names[i * 2 + 1].set(pair.player_b.name)
+            self.our_pairs_usernames[i * 2].set(pair.player_a.username)
+            self.our_pairs_usernames[i * 2 + 1].set(pair.player_b.username)
 
         # Populate opponent pairs
-        for i, pair in enumerate(match.opps_players):
-            self.opps_pairs_names[i * 2].set(pair.north_south.name)
-            self.opps_pairs_names[i * 2 + 1].set(pair.east_west.name)
-            self.opps_pairs_usernames[i * 2].set(pair.north_south.username)
-            self.opps_pairs_usernames[i * 2 + 1].set(pair.east_west.username)
+        for i, pair in enumerate(match.opps_pairs):
+            self.opps_pairs_names[i * 2].set(pair.player_a.name)
+            self.opps_pairs_names[i * 2 + 1].set(pair.player_b.name)
+            self.opps_pairs_usernames[i * 2].set(pair.player_a.username)
+            self.opps_pairs_usernames[i * 2 + 1].set(pair.player_b.username)
+
+        self._on_round_number_change()
+
+    def _on_round_number_change(self) -> None:
+        self.round_display.set(self.round_number.get() + 1)
+        self.section_display.set(self.section_number.get() + 1)
+        round = self.round_number.get()
+        section = self.section_number.get()
+        self.section_seats_N[OUR_TEAM].set(
+            self.our_pairs[0 + section * 2].player_a.username
+        )
+        self.section_seats_S[OUR_TEAM].set(
+            self.our_pairs[0 + section * 2].player_b.username
+        )
+        self.section_seats_E[OUR_TEAM].set(
+            self.our_pairs[1 + section * 2].player_a.username
+        )
+        self.section_seats_W[OUR_TEAM].set(
+            self.our_pairs[1 + section * 2].player_b.username
+        )
+
+        # Set opponent seats based on seat plan
+        seat_plan = OPPS_SEAT_PLANS[round][section]
+        self.section_seats_N[OPPONENTS_TEAM].set(
+            self.opps_pairs[seat_plan[0]].player_a.username
+        )
+        self.section_seats_S[OPPONENTS_TEAM].set(
+            self.opps_pairs[seat_plan[0]].player_b.username
+        )
+        self.section_seats_E[OPPONENTS_TEAM].set(
+            self.opps_pairs[seat_plan[1]].player_a.username
+        )
+        self.section_seats_W[OPPONENTS_TEAM].set(
+            self.opps_pairs[seat_plan[1]].player_b.username
+        )
 
     def _process(self, *args) -> None:
         pass
