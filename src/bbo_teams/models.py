@@ -20,3 +20,4 @@ class Match:
     match_date: str = ""
     our_pairs: list[Pair] = None
     opps_pairs: list[Pair] = None
+    deal_files: list[str] = None

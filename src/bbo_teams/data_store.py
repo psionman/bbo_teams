@@ -10,6 +10,7 @@ def get_match_data(path: str) -> Match:
     match.club_name = named_ranges["club_name"]
     match.opponents_club_name = named_ranges["opposition_club"]
     match.match_date = named_ranges["match_date"]
+    match.deal_files = [deal[0] for deal in named_ranges["deal_files"]]
 
     match.our_pairs = []
     match.opps_pairs = []
