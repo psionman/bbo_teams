@@ -2,6 +2,8 @@
 
 """AppFrame for BBO Team setup."""
 
+import os
+import random
 import tkinter as tk
 from tkinter import filedialog, ttk
 
@@ -13,38 +15,18 @@ from bbo_teams.config import config
 from bbo_teams.constants import APP_TITLE, DEFAULT_GEOMETRY
 from bbo_teams.data_store import get_match_data
 from bbo_teams.main_menu import MainMenu
+from bbo_teams.models import OPPS_SEAT_PLANS, Team
+from bbo_teams.seat_teams import BboSession
 from bbo_teams.state import state
 from bbo_teams.text import Text
 
 txt = Text()
-worksheet_path = (
+WORKBOOK_PATH = (
     "/home/jeff/Documents/Bridge/NBC/20261013/NBC_BR_Tigers_20261013.xlsx"
 )
 
 OUR_TEAM = 0
 OPPONENTS_TEAM = 1
-
-# Seat plans for opponents
-# Key: (round, section)
-# Value: [opponent_pair_1, opponent_pair_2]
-OPPS_SEAT_PLANS = {
-    0: {
-        0: [1, 0],
-        1: [3, 2],
-    },
-    1: {
-        0: [0, 1],
-        1: [2, 3],
-    },
-    2: {
-        0: [3, 2],
-        1: [1, 0],
-    },
-    3: {
-        0: [2, 3],
-        1: [0, 1],
-    },
-}
 
 
 class AppFrame:
@@ -55,12 +37,14 @@ class AppFrame:
 
         self.our_pairs = []
         self.opps_pairs = []
+        self.match = None
 
         # tk variables
         self.workbook_path = tk.StringVar(value="")
         self.club_name = tk.StringVar(value="")
         self.opponents_club_name = tk.StringVar(value="")
         self.match_date = tk.StringVar(value="")
+        self.boards_per_round = tk.StringVar(value="")
         self.our_pairs_names = [tk.StringVar(value="") for _ in range(8)]
         self.our_pairs_usernames = [tk.StringVar(value="") for _ in range(8)]
         self.opps_pairs_names = [tk.StringVar(value="") for _ in range(8)]
@@ -80,7 +64,12 @@ class AppFrame:
 
         self._show()
 
-        self._open_workbook(worksheet_path)
+        # TODO: Remove this in production
+        self.workbook_path.set(WORKBOOK_PATH)
+        self._open_workbook(WORKBOOK_PATH)
+        self.round_number.set(random.randint(0, 5))
+        self.section_number.set(random.randint(0, 1))
+        self._process()
 
     def _show(self):
         root = self.root
@@ -177,6 +166,15 @@ class AppFrame:
 
         entry = ttk.Label(
             frame, textvariable=self.match_date, relief=tk.SUNKEN
+        )
+        entry.grid(row=row, column=1, sticky=tk.EW)
+
+        row += 1
+        label = ttk.Label(frame, text="Rounds per board")
+        label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
+
+        entry = ttk.Label(
+            frame, textvariable=self.boards_per_round, relief=tk.SUNKEN
         )
         entry.grid(row=row, column=1, sticky=tk.EW)
 
@@ -369,7 +367,7 @@ class AppFrame:
 
     def _frame_buttons(self, frame: ButtonFrame) -> list[IconButton]:
         return [
-            frame.icon_button("build", self._process),
+            frame.icon_button("build", self._process, True),
             frame.icon_button("cancel", self._dismiss),
         ]
 
@@ -394,6 +392,7 @@ class AppFrame:
 
     def _open_workbook(self, path: str) -> None:
         match = get_match_data(path)
+        self.match = match
         self.club_name.set(match.club_name)
         self.opponents_club_name.set(match.opponents_club_name)
         self.match_date.set(match.match_date.strftime("%d %B %Y"))
@@ -415,7 +414,7 @@ class AppFrame:
             self.opps_pairs_usernames[i * 2 + 1].set(pair.player_b.username)
 
         self.deal_files = match.deal_files
-        print(self.deal_files)
+        self.boards_per_round.set(match.boards_per_round)
 
         self._on_round_number_change()
 
@@ -455,7 +454,24 @@ class AppFrame:
         self.deal_file_display.set(self.deal_files[round])
 
     def _process(self, *args) -> None:
-        pass
+        self.match.round = self.round_number.get() + 1
+        self.match.section = self.section_number.get() + 1
+        self.match.our_team = Team(
+            north=self.section_seats_N[OUR_TEAM].get(),
+            south=self.section_seats_S[OUR_TEAM].get(),
+            east=self.section_seats_E[OUR_TEAM].get(),
+            west=self.section_seats_W[OUR_TEAM].get(),
+        )
+        self.match.opps_team = Team(
+            north=self.section_seats_N[OPPONENTS_TEAM].get(),
+            south=self.section_seats_S[OPPONENTS_TEAM].get(),
+            east=self.section_seats_E[OPPONENTS_TEAM].get(),
+            west=self.section_seats_W[OPPONENTS_TEAM].get(),
+        )
+
+        session = BboSession()
+        session.login(os.environ["BBO_USERNAME"], os.environ["BBO_PASSWORD"])
+        session.seat_teams(self.match)
 
     def _dismiss(self, *args) -> None:
         self.root.destroy()
