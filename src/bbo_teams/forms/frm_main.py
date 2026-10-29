@@ -3,7 +3,6 @@
 """AppFrame for BBO Team setup."""
 
 import os
-import random
 import tkinter as tk
 from tkinter import filedialog, ttk
 
@@ -44,7 +43,9 @@ class AppFrame:
         self.club_name = tk.StringVar(value="")
         self.opponents_club_name = tk.StringVar(value="")
         self.match_date = tk.StringVar(value="")
-        self.boards_per_round = tk.StringVar(value="")
+        self.boards_per_round = tk.StringVar(
+            value=str(config.boards_per_round)
+        )
         self.our_pairs_names = [tk.StringVar(value="") for _ in range(8)]
         self.our_pairs_usernames = [tk.StringVar(value="") for _ in range(8)]
         self.opps_pairs_names = [tk.StringVar(value="") for _ in range(8)]
@@ -67,9 +68,9 @@ class AppFrame:
         # TODO: Remove this in production
         self.workbook_path.set(WORKBOOK_PATH)
         self._open_workbook(WORKBOOK_PATH)
-        self.round_number.set(random.randint(0, 5))
-        self.section_number.set(random.randint(0, 1))
-        self._process()
+        # self.round_number.set(random.randint(0, 5))
+        # self.section_number.set(random.randint(0, 1))
+        # self._process()
 
     def _show(self):
         root = self.root
@@ -421,7 +422,6 @@ class AppFrame:
     def _on_round_number_change(self) -> None:
         self.round_display.set(self.round_number.get() + 1)
         self.section_display.set(self.section_number.get() + 1)
-        round = self.round_number.get()
         section = self.section_number.get()
         self.section_seats_N[OUR_TEAM].set(
             self.our_pairs[0 + section * 2].player_a.username
@@ -438,6 +438,7 @@ class AppFrame:
 
         # Set opponent seats based on seat plan
         # The opps pair number comes fomr the seat plan
+        round = self.round_number.get()
         seat_plan = OPPS_SEAT_PLANS[round][section]
         self.section_seats_N[OPPONENTS_TEAM].set(
             self.opps_pairs[seat_plan[0]].player_a.username
@@ -454,24 +455,30 @@ class AppFrame:
         self.deal_file_display.set(self.deal_files[round])
 
     def _process(self, *args) -> None:
-        self.match.round = self.round_number.get() + 1
-        self.match.section = self.section_number.get() + 1
-        self.match.our_team = Team(
+        match = self.match
+        match.round = self.round_number.get() + 1
+        match.section = self.section_number.get() + 1
+        match.deal_file = self.deal_files[self.round_number.get()]
+        match.description_text = config.description_text
+        match.our_team = Team(
             north=self.section_seats_N[OUR_TEAM].get(),
             south=self.section_seats_S[OUR_TEAM].get(),
             east=self.section_seats_E[OUR_TEAM].get(),
             west=self.section_seats_W[OUR_TEAM].get(),
         )
-        self.match.opps_team = Team(
+        match.opps_team = Team(
             north=self.section_seats_N[OPPONENTS_TEAM].get(),
             south=self.section_seats_S[OPPONENTS_TEAM].get(),
             east=self.section_seats_E[OPPONENTS_TEAM].get(),
             west=self.section_seats_W[OPPONENTS_TEAM].get(),
         )
 
-        session = BboSession()
-        session.login(os.environ["BBO_USERNAME"], os.environ["BBO_PASSWORD"])
-        session.seat_teams(self.match)
+        if True:  # TODO remove for production
+            session = BboSession()
+            session.login(
+                os.environ["BBO_USERNAME"], os.environ["BBO_PASSWORD"]
+            )
+            session.seat_teams(match)
 
     def _dismiss(self, *args) -> None:
         self.root.destroy()

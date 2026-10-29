@@ -60,6 +60,7 @@ class BboSession:
 
     def seat_teams(self, match: Match):
         page = self.page
+        print(page)
 
         page.get_by_role("button", name="Team Matches").click()
         page.get_by_role("button", name="Create Team Match").click()
@@ -74,7 +75,7 @@ class BboSession:
         popup.get_by_role("textbox").first.wait_for()
         popup.get_by_role("tab", name="Identification").click()
         popup.get_by_label("Title").fill(match.title)
-        popup.get_by_label("Description").fill(match.description)
+        popup.get_by_label("Description").fill(match.description_text)
         popup.get_by_role("textbox", name="Team 1").fill(match.club_name)
         popup.get_by_role("textbox", name="Team 2").fill(
             match.opponents_club_name
@@ -102,7 +103,8 @@ class BboSession:
 
         hand_popup = page.locator("hand-folder-select-popup")
         hand_popup.wait_for()
-        hand_popup.get_by_text("Round 3").click()
+        # If deal file misspelled can be handled manually
+        hand_popup.get_by_text(match.deal_file).click()
         hand_popup.get_by_role("button", name="Select", exact=True).click()
         hand_popup.locator("#modal-content-1").get_by_role(
             "button", name="Close"

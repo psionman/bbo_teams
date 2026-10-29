@@ -13,6 +13,8 @@ from bbo_teams.constants import CONFIG_PATH, USER_DATA_DIR
 FIELDS = {
     "data_directory": ConfigField(str, USER_DATA_DIR),
     "teams_directory": ConfigField(str, str(Path.home())),
+    "boards_per_round": ConfigField(int, 6),
+    "description_text": ConfigField(str, "+private+ +slow+"),
 }
 
 DEFAULT_CONFIG = {}

@@ -7,6 +7,7 @@ from tkinter import filedialog, ttk
 
 from psiutils.constants import PAD
 from psiutils.utilities import restore_geometry, window_resize
+from psiutils.widgets import clickable_widget
 
 from bbo_teams import logger
 from bbo_teams.buttons import ButtonFrame, IconButton
@@ -95,6 +96,27 @@ class ConfigFrame:
             frame, txt.OPEN, "open-folder", self._get_teams_directory
         )
         button.grid(row=row, column=2, padx=PAD, pady=PAD)
+
+        row += 1
+        label = ttk.Label(frame, text="Boards per round")
+        label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
+
+        spinbox = ttk.Spinbox(
+            frame,
+            from_=1,
+            to=28,
+            increment=1,
+            textvariable=self.boards_per_round,
+        )
+        spinbox.grid(row=row, column=1, sticky=tk.W, padx=PAD)
+        clickable_widget(spinbox)
+
+        row += 1
+        label = ttk.Label(frame, text="Description text")
+        label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
+
+        entry = ttk.Entry(frame, textvariable=self.description_text)
+        entry.grid(row=row, column=1, sticky=tk.EW)
 
         return frame
 

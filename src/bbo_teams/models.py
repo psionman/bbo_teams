@@ -33,7 +33,9 @@ class Match:
     deal_files: list[str] = None
     our_teams: Team = None
     opps_teams: Team = None
-    boards_per_round = "6"
+    boards_per_round: str = "6"
+    deal_file: str = ""
+    description_text: str = ""
 
     @property
     def title(self) -> str:
@@ -41,10 +43,6 @@ class Match:
             f"{self.club_name} vs {self.opponents_club_name} - "
             f"Round {self.round} - Section {self.section}"
         )
-
-    @property
-    def description(self) -> str:
-        return "+private+ +slow+"
 
 
 # Seat plans for opponents
