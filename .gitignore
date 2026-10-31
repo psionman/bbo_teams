@@ -17,6 +17,7 @@ staticfiles/
 venv/
 env/
 .python-version
+recorded.py
 
 # Distribution / packaging
 build/
@@ -24,6 +25,7 @@ dist/
 *.egg-info/
 *.egg
 MANIFEST
+tmp/
 
 # Editors / IDEs
 .vscode/

@@ -74,18 +74,6 @@ class ConfigFrame:
         frame.columnconfigure(1, weight=1)
 
         row = 0
-        label = ttk.Label(frame, text="Data directory")
-        label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
-
-        entry = ttk.Entry(frame, textvariable=self.data_directory)
-        entry.grid(row=row, column=1, sticky=tk.EW)
-
-        button = IconButton(
-            frame, txt.OPEN, "open-folder", self._get_data_directory
-        )
-        button.grid(row=row, column=2, padx=PAD)
-
-        row += 1
         label = ttk.Label(frame, text="Teams directory")
         label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
 
@@ -96,6 +84,19 @@ class ConfigFrame:
             frame, txt.OPEN, "open-folder", self._get_teams_directory
         )
         button.grid(row=row, column=2, padx=PAD, pady=PAD)
+
+        row += 1
+
+        label = ttk.Label(frame, text="Deal directory")
+        label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
+
+        entry = ttk.Entry(frame, textvariable=self.deal_directory)
+        entry.grid(row=row, column=1, sticky=tk.EW)
+
+        button = IconButton(
+            frame, txt.OPEN, "open-folder", self._get_data_directory
+        )
+        button.grid(row=row, column=2, padx=PAD)
 
         row += 1
         label = ttk.Label(frame, text="Boards per round")
@@ -141,9 +142,9 @@ class ConfigFrame:
         self.button_frame.enable(enable)
 
     def _get_data_directory(self, *args) -> None:
-        directory = self._get_directory(self.data_directory.get())
+        directory = self._get_directory(self.deal_directory.get())
         if directory:
-            self.data_directory.set(directory)
+            self.deal_directory.set(directory)
 
     def _get_teams_directory(self, *args) -> None:
         directory = self._get_directory(self.teams_directory.get())

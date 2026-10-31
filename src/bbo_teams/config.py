@@ -6,12 +6,12 @@ from pathlib import Path
 
 from psiconfig import ConfigField, TomlConfig
 
-from bbo_teams.constants import CONFIG_PATH, USER_DATA_DIR
+from bbo_teams.constants import CONFIG_PATH
 
 # FIELDS for config, and to create tkinter variables in frm_config.py
 # e.g. self.data_directory is a tk.StringVar
 FIELDS = {
-    "data_directory": ConfigField(str, USER_DATA_DIR),
+    "deal_directory": ConfigField(str, str(Path.home())),
     "teams_directory": ConfigField(str, str(Path.home())),
     "boards_per_round": ConfigField(int, 6),
     "description_text": ConfigField(str, "+private+ +slow+"),

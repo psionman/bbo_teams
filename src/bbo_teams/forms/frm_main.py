@@ -9,13 +9,13 @@ from tkinter import filedialog, ttk
 from psiutils.constants import PAD, FileTypes
 from psiutils.utilities import restore_geometry, window_resize
 
+from bbo_teams.bbo_session import BboSession
 from bbo_teams.buttons import ButtonFrame, IconButton
 from bbo_teams.config import config
 from bbo_teams.constants import APP_TITLE, DEFAULT_GEOMETRY
 from bbo_teams.data_store import get_match_data
 from bbo_teams.main_menu import MainMenu
 from bbo_teams.models import OPPS_SEAT_PLANS, Team
-from bbo_teams.seat_teams import BboSession
 from bbo_teams.state import state
 from bbo_teams.text import Text
 
@@ -59,6 +59,7 @@ class AppFrame:
         self.section_seats_S = [tk.StringVar(value="") for team in range(2)]
         self.section_seats_E = [tk.StringVar(value="") for team in range(2)]
         self.section_seats_W = [tk.StringVar(value="") for team in range(2)]
+        self.deal_files = [tk.StringVar(value="") for _ in range(4)]
 
         # Trace
         self.workbook_path.trace_add("write", self._value_changed)
@@ -70,7 +71,8 @@ class AppFrame:
         self._open_workbook(WORKBOOK_PATH)
         # self.round_number.set(random.randint(0, 5))
         # self.section_number.set(random.randint(0, 1))
-        # self._process()
+        # self._seat_teams()
+        self._upload_deal_files()
 
     def _show(self):
         root = self.root
@@ -96,7 +98,6 @@ class AppFrame:
 
         root.update_idletasks()
         root.bind("<Control-x>", self._dismiss)
-        root.bind("<Control-o>", self._process)
         root.bind(
             "<Configure>",
             lambda e: window_resize(root, __file__, state),
@@ -146,38 +147,55 @@ class AppFrame:
         button.grid(row=row, column=2, padx=PAD)
 
         row += 1
+        match_details_frame = self._match_details(frame)
+        match_details_frame.grid(row=row, column=0, columnspan=3, sticky=tk.EW)
+
+        return frame
+
+    def _match_details(self, master: tk.Frame) -> tk.Frame:
+        frame = tk.Frame(master)
+        frame.columnconfigure(2, weight=1)
+
+        row = 0
         label = ttk.Label(frame, text="Club name")
         label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
-
-        entry = ttk.Label(frame, textvariable=self.club_name, relief=tk.SUNKEN)
-        entry.grid(row=row, column=1, sticky=tk.EW)
+        data = ttk.Label(frame, textvariable=self.club_name, relief=tk.SUNKEN)
+        data.grid(row=row, column=1, sticky=tk.EW)
 
         row += 1
         label = ttk.Label(frame, text="Opponent club name")
         label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
-
-        entry = ttk.Label(
+        data = ttk.Label(
             frame, textvariable=self.opponents_club_name, relief=tk.SUNKEN
         )
-        entry.grid(row=row, column=1, sticky=tk.EW)
+        data.grid(row=row, column=1, sticky=tk.EW)
 
         row += 1
         label = ttk.Label(frame, text="Match date")
         label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
-
-        entry = ttk.Label(
-            frame, textvariable=self.match_date, relief=tk.SUNKEN
-        )
-        entry.grid(row=row, column=1, sticky=tk.EW)
+        data = ttk.Label(frame, textvariable=self.match_date, relief=tk.SUNKEN)
+        data.grid(row=row, column=1, sticky=tk.EW)
 
         row += 1
         label = ttk.Label(frame, text="Rounds per board")
         label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
-
-        entry = ttk.Label(
+        data = ttk.Label(
             frame, textvariable=self.boards_per_round, relief=tk.SUNKEN
         )
-        entry.grid(row=row, column=1, sticky=tk.EW)
+        data.grid(row=row, column=1, sticky=tk.EW)
+
+        label = ttk.Label(frame, text="Deal files")
+        label.grid(row=0, column=3, rowspan=4, sticky=tk.E, padx=PAD, pady=PAD)
+        for row, deal in enumerate(self.deal_files):
+            data = ttk.Label(frame, textvariable=deal, relief=tk.SUNKEN)
+            data.grid(
+                row=row,
+                column=4,
+                sticky=tk.EW,
+                padx=PAD,
+            )
+
+        return frame
 
         return frame
 
@@ -367,8 +385,19 @@ class AppFrame:
         return frame
 
     def _frame_buttons(self, frame: ButtonFrame) -> list[IconButton]:
+        account_button = IconButton(
+            frame,
+            "Add players",
+            "account-multiple-plus-outline",
+            self._add_players,
+            True,
+        )
         return [
-            frame.icon_button("build", self._process, True),
+            frame.icon_button("build", self._seat_teams, True),
+            account_button,
+            frame.icon_button(
+                "upload", self._upload_deal_files, True, text="Upload files"
+            ),
             frame.icon_button("cancel", self._dismiss),
         ]
 
@@ -394,6 +423,10 @@ class AppFrame:
     def _open_workbook(self, path: str) -> None:
         match = get_match_data(path)
         self.match = match
+
+        match.username = os.environ["BBO_USERNAME"]
+        match.password = os.environ["BBO_PASSWORD"]
+
         self.club_name.set(match.club_name)
         self.opponents_club_name.set(match.opponents_club_name)
         self.match_date.set(match.match_date.strftime("%d %B %Y"))
@@ -414,8 +447,9 @@ class AppFrame:
             self.opps_pairs_usernames[i * 2].set(pair.player_a.username)
             self.opps_pairs_usernames[i * 2 + 1].set(pair.player_b.username)
 
-        self.deal_files = match.deal_files
         self.boards_per_round.set(match.boards_per_round)
+        for i, deal_file in enumerate(match.deal_files):
+            self.deal_files[i].set(deal_file)
 
         self._on_round_number_change()
 
@@ -452,13 +486,13 @@ class AppFrame:
         self.section_seats_W[OPPONENTS_TEAM].set(
             self.opps_pairs[seat_plan[1]].player_b.username
         )
-        self.deal_file_display.set(self.deal_files[round])
+        self.deal_file_display.set(self.match.deal_files[round])
 
-    def _process(self, *args) -> None:
+    def _seat_teams(self, *args) -> None:
         match = self.match
         match.round = self.round_number.get() + 1
         match.section = self.section_number.get() + 1
-        match.deal_file = self.deal_files[self.round_number.get()]
+        match.deal_file = self.match.deal_files[self.round_number.get()]
         match.description_text = config.description_text
         match.our_team = Team(
             north=self.section_seats_N[OUR_TEAM].get(),
@@ -473,12 +507,17 @@ class AppFrame:
             west=self.section_seats_W[OPPONENTS_TEAM].get(),
         )
 
+        session = BboSession()
         if True:  # TODO remove for production
-            session = BboSession()
-            session.login(
-                os.environ["BBO_USERNAME"], os.environ["BBO_PASSWORD"]
-            )
             session.seat_teams(match)
+
+    def _upload_deal_files(self, *args) -> None:
+        session = BboSession()
+        session.upload_deal_files(self.match)
+
+    def _add_players(self, *args) -> None:
+        session = BboSession()
+        session.add_players(self.match)
 
     def _dismiss(self, *args) -> None:
         self.root.destroy()

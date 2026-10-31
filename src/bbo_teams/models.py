@@ -36,6 +36,8 @@ class Match:
     boards_per_round: str = "6"
     deal_file: str = ""
     description_text: str = ""
+    username: str = ""
+    password: str = ""
 
     @property
     def title(self) -> str:
