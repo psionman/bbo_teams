@@ -1,58 +1,12 @@
-# Byte-compiled / cache
+# Python-generated files
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-
-# Django
-db.sqlite3
-db.sqlite3-journal
-*.log
-logs/
-media/
-staticfiles/
-
-# uv / venv
-.venv/
-venv/
-env/
-.python-version
-recorded.py
-
-# Distribution / packaging
+*.py[oc]
 build/
 dist/
-*.egg-info/
-*.egg
-MANIFEST
-tmp/
-
-# Editors / IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS junk
-.DS_Store
-Thumbs.db
-
-# Env / secrets
+wheels/
+*.egg-info
 .env
-.env.*
-!.env.example
+*.log
 
-# Sync conflict files (Syncthing etc.)
-*.sync-conflict-*
-
-# Coverage / test artifacts
-.coverage
-.coverage.*
-htmlcov/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
-# Playwright
-bbo_session.json
+# Virtual environments
+.venv
