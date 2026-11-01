@@ -210,7 +210,16 @@ class BboSession:
     def add_players(self, match: Match):
         self.login(match)
         page = self.page
-        page.pause()
+        page.get_by_text("People").first.click()
+        for pair in [*match.our_pairs, *match.opps_pairs]:
+            self._add_username(pair.player_a.username)
+            self._add_username(pair.player_b.username)
+
+    def _add_username(self, username: str) -> None:
+        page = self.page
+        page.get_by_role("textbox", name="Add Friend").click()
+        page.get_by_role("textbox", name="Add Friend").fill(username)
+        page.get_by_role("button", name="Add").click()
 
     # =========================================================================
     # Deal file upload methods
@@ -222,6 +231,8 @@ class BboSession:
         self._open_deal_archive()
         for deal_file in match.deal_files:
             self._import_into_new_folder(deal_file)
+        self.page.wait_for_timeout(500)
+        self.page.close()
 
     def _open_deal_archive(self) -> None:
         """Open the archive and press "+" so the folder list appears."""

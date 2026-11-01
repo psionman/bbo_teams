@@ -66,14 +66,6 @@ class AppFrame:
 
         self._show()
 
-        # TODO: Remove this in production
-        self.workbook_path.set(WORKBOOK_PATH)
-        self._open_workbook(WORKBOOK_PATH)
-        # self.round_number.set(random.randint(0, 5))
-        # self.section_number.set(random.randint(0, 1))
-        # self._seat_teams()
-        self._upload_deal_files()
-
     def _show(self):
         root = self.root
         restore_geometry(root, state, __file__, default=DEFAULT_GEOMETRY)
@@ -82,11 +74,13 @@ class AppFrame:
         main_menu = MainMenu(self)
         main_menu.create()
 
-        root.rowconfigure(0, weight=1)
         root.columnconfigure(0, weight=1)
+        root.rowconfigure(0, weight=1)
 
-        main_frame = self._main_frame(root)
-        main_frame.grid(row=0, column=0, sticky=tk.NSEW, padx=PAD, pady=PAD)
+        workbook_frame = self._workbook_frame(root)
+        workbook_frame.grid(
+            row=0, column=0, sticky=tk.NSEW, padx=PAD, pady=PAD
+        )
 
         self.button_frame = self._button_frame(root)
         self.button_frame.grid(
@@ -132,7 +126,7 @@ class AppFrame:
 
         return frame
 
-    def _header_frame(self, master: tk.Frame) -> tk.Frame:
+    def _workbook_frame(self, master: tk.Frame) -> tk.Frame:
         frame = tk.Frame(master)
         frame.columnconfigure(1, weight=1)
 
@@ -146,7 +140,13 @@ class AppFrame:
         button = IconButton(frame, txt.OPEN, "open-folder", self._get_workbook)
         button.grid(row=row, column=2, padx=PAD)
 
-        row += 1
+        return frame
+
+    def _header_frame(self, master: tk.Frame) -> tk.Frame:
+        frame = tk.Frame(master)
+        frame.columnconfigure(1, weight=1)
+
+        row = 0
         match_details_frame = self._match_details(frame)
         match_details_frame.grid(row=row, column=0, columnspan=3, sticky=tk.EW)
 
@@ -416,8 +416,14 @@ class AppFrame:
             title="Select workbook:",
             filetypes=FileTypes.XLS.value,
         )
-        self.workbook_path.set(path)
         if path:
+            self.workbook_path.set(path)
+            main_frame = self._main_frame(self.root)
+            row = 1
+            main_frame.grid(
+                row=row, column=0, sticky=tk.NSEW, padx=PAD, pady=PAD
+            )
+            self.root.rowconfigure(row + 1, weight=1)
             self._open_workbook(path)
 
     def _open_workbook(self, path: str) -> None:
@@ -508,16 +514,18 @@ class AppFrame:
         )
 
         session = BboSession()
-        if True:  # TODO remove for production
-            session.seat_teams(match)
+        session.seat_teams(match)
+        self._dismiss()
 
     def _upload_deal_files(self, *args) -> None:
         session = BboSession()
         session.upload_deal_files(self.match)
+        self._dismiss()
 
     def _add_players(self, *args) -> None:
         session = BboSession()
         session.add_players(self.match)
+        self._dismiss()
 
     def _dismiss(self, *args) -> None:
         self.root.destroy()
