@@ -8,13 +8,8 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from bbo_teams.config import config
 from bbo_teams.models import Match, Team
 
-LOGIN_URL = "https://www.bridgebase.com/v3/auth/login"
 SESSION_FILE = Path("bbo_session.json")
 
-
-STARTS_PATTERN = re.compile(
-    r"Starts:\s*(\w{3}, \d{1,2} \w{3} \d{4}, \d{1,2}:\d{2})"
-)
 
 COOKIE_BUTTON = re.compile(r"accept|agree|allow", re.IGNORECASE)
 COOKIE_TIMEOUT = 1000
@@ -124,7 +119,9 @@ class BboSession:
         if self.logged_in:
             return
         try:
-            page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
+            page.goto(
+                config.login_url, wait_until="domcontentloaded", timeout=30000
+            )
             page.locator("#username").wait_for(timeout=15000)
         except PlaywrightTimeoutError as error:
             self.close()
