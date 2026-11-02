@@ -5,7 +5,6 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Locator, Page, expect, sync_playwright
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
-from bbo_teams import logger
 from bbo_teams.config import config
 from bbo_teams.models import Match, Team
 
@@ -86,21 +85,44 @@ class BboSession:
 
     def __init__(self, headless: bool = False) -> None:
         self._playwright = sync_playwright().start()
+        self.logged_in = False
         self._browser = self._playwright.chromium.launch(headless=headless)
         try:
             self._context = self._browser.new_context(
                 viewport={"width": 1700, "height": 900}
             )
-        except Exception as e:
-            logger.error(f"Failed to create browser context: {e}")
+            self.page = self._context.new_page()
+        except PlaywrightError:
+            self._playwright.stop()
             raise
-        self.page: Page = self._context.new_page()
-        # Set Chromium page zoom to 75%
+
         cdp = self._context.new_cdp_session(self.page)
         cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 0.75})
 
+    def is_alive(self) -> bool:
+        """True while the browser window is still open and responding."""
+        try:
+            self.page.evaluate("1")  # Raises if the window was closed
+            return True
+        except PlaywrightError:
+            return False
+
+    def close(self) -> None:
+        """Close everything; safe to call more than once."""
+        for step in (
+            self._context.close,
+            self._browser.close,
+            self._playwright.stop,
+        ):
+            try:
+                step()
+            except PlaywrightError:
+                pass  # Already closed, for example by you
+
     def login(self, match: Match) -> None:
         page = self.page
+        if self.logged_in:
+            return
         try:
             page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
             page.locator("#username").wait_for(timeout=15000)
@@ -121,6 +143,8 @@ class BboSession:
         page.add_style_tag(content="body { zoom: 75%; }")
         self._context.storage_state(path=SESSION_FILE)
 
+        self.logged_in = True
+
     def _enter_credentials(self, username: str, password: str) -> None:
         page = self.page
         page.locator("#username").fill(username)
@@ -131,14 +155,34 @@ class BboSession:
         self.login(match)
         page = self.page
 
-        page.get_by_role("button", name="Team Matches").click()
-        page.get_by_role("button", name="Create Team Match").click()
+        self._open_team_matches()
+        page.get_by_role(
+            "button", name="Create Team Match", exact=True
+        ).click()
         popup = page.locator("team-match-properties-popup")
-        print(type(popup))
 
         self._complete_identity(popup, match)
         self._complete_options(page, popup, match)
         self._complete_seats(popup, match)
+
+    def _open_team_matches(self) -> None:
+        """Get to the Team Matches screen from wherever the session is."""
+        page = self.page
+        create = page.get_by_role(
+            "button", name="Create Team Match", exact=True
+        )
+        if create.is_visible():
+            return  # Already on the Team Matches screen
+
+        lobby_button = page.get_by_role(
+            "button", name="Team Matches", exact=True
+        )
+        if not lobby_button.is_visible():
+            page.get_by_role(
+                "button", name="Lobby"
+            ).click()  # The →Lobby button
+        lobby_button.click()
+        expect(create).to_be_visible()
 
     def _complete_identity(self, popup: Locator, match: Match):
         popup.get_by_role("textbox").first.wait_for()

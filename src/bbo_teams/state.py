@@ -17,6 +17,7 @@ DEFAULT_SIZE = "500x500"
 class State:
     def __init__(self):
         self.geometry: dict[str, str] = {}
+        self.workbook: str = ""
 
         self.get_state()
 
@@ -31,6 +32,7 @@ class State:
             data = {}
 
         self.geometry = data.get("geometry", DEFAULT_GEOMETRY)
+        self.workbook = data.get("workbook", "")
         if not self.geometry:
             self.geometry = DEFAULT_GEOMETRY
 
@@ -40,6 +42,7 @@ class State:
     def serialize(self):
         return {
             "geometry": self.geometry,
+            "workbook": self.workbook,
         }
 
     def save(self):

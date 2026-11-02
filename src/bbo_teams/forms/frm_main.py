@@ -33,13 +33,14 @@ class AppFrame:
 
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
+        self.session = None
 
         self.our_pairs = []
         self.opps_pairs = []
         self.match = None
 
         # tk variables
-        self.workbook_path = tk.StringVar(value="")
+        self.workbook_path = tk.StringVar(value=state.workbook)
         self.club_name = tk.StringVar(value="")
         self.opponents_club_name = tk.StringVar(value="")
         self.match_date = tk.StringVar(value="")
@@ -65,6 +66,10 @@ class AppFrame:
         self.workbook_path.trace_add("write", self._value_changed)
 
         self._show()
+        if state.workbook:
+            self._display_main_frame()
+            self._open_workbook(state.workbook)
+            self._value_changed()
 
     def _show(self):
         root = self.root
@@ -96,6 +101,12 @@ class AppFrame:
             "<Configure>",
             lambda e: window_resize(root, __file__, state),
         )
+
+    def _display_main_frame(self):
+        main_frame = self._main_frame(self.root)
+        row = 1
+        main_frame.grid(row=row, column=0, sticky=tk.NSEW, padx=PAD, pady=PAD)
+        self.root.rowconfigure(row + 1, weight=1)
 
     def _main_frame(self, master: tk.Frame) -> tk.Frame:
         frame = tk.Frame(master)
@@ -393,7 +404,9 @@ class AppFrame:
             True,
         )
         return [
-            frame.icon_button("build", self._seat_teams, True),
+            frame.icon_button(
+                "build", self._seat_teams, True, text="Seat teams"
+            ),
             account_button,
             frame.icon_button(
                 "upload", self._upload_deal_files, True, text="Upload files"
@@ -418,13 +431,10 @@ class AppFrame:
         )
         if path:
             self.workbook_path.set(path)
-            main_frame = self._main_frame(self.root)
-            row = 1
-            main_frame.grid(
-                row=row, column=0, sticky=tk.NSEW, padx=PAD, pady=PAD
-            )
-            self.root.rowconfigure(row + 1, weight=1)
+            self._display_main_frame()
             self._open_workbook(path)
+            state.workbook = path
+            state.save()
 
     def _open_workbook(self, path: str) -> None:
         match = get_match_data(path)
@@ -513,19 +523,29 @@ class AppFrame:
             west=self.section_seats_W[OPPONENTS_TEAM].get(),
         )
 
-        session = BboSession()
+        session = self._get_session()
         session.seat_teams(match)
-        self._dismiss()
 
     def _upload_deal_files(self, *args) -> None:
-        session = BboSession()
+        session = self._get_session()
         session.upload_deal_files(self.match)
         self._dismiss()
 
     def _add_players(self, *args) -> None:
-        session = BboSession()
+        session = self._get_session()
         session.add_players(self.match)
         self._dismiss()
+
+    def _get_session(self) -> BboSession:
+        """Reuse the open session, or replace one you have closed."""
+        session = self.session
+        if session is not None and not session.is_alive():
+            session.close()  # Stops Playwright, so a new start() works
+            session = None
+        if session is None:
+            session = BboSession()
+        self.session = session
+        return session
 
     def _dismiss(self, *args) -> None:
         self.root.destroy()
