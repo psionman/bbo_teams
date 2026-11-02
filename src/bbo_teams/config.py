@@ -15,6 +15,7 @@ FIELDS = {
     "teams_directory": ConfigField(str, str(Path.home())),
     "boards_per_round": ConfigField(int, 6),
     "description_text": ConfigField(str, "+private+ +slow+"),
+    "login_url": ConfigField(str, "https://www.bridgebase.com/v3/auth/login"),
 }
 
 DEFAULT_CONFIG = {}

@@ -74,6 +74,13 @@ class ConfigFrame:
         frame.columnconfigure(1, weight=1)
 
         row = 0
+        label = ttk.Label(frame, text="BBO login url")
+        label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
+
+        entry = ttk.Entry(frame, textvariable=self.login_url)
+        entry.grid(row=row, column=1, sticky=tk.EW)
+
+        row += 1
         label = ttk.Label(frame, text="Teams directory")
         label.grid(row=row, column=0, sticky=tk.E, padx=PAD, pady=PAD)
 
