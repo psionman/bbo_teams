@@ -12,7 +12,7 @@ from bbo_teams.bbo_session import BboSession
 from bbo_teams.buttons import ButtonFrame, IconButton
 from bbo_teams.config import config
 from bbo_teams.constants import APP_TITLE, DEFAULT_GEOMETRY
-from bbo_teams.data_store import get_match_data, validate_data
+from bbo_teams.data_store import get_match_data
 from bbo_teams.main_menu import MainMenu
 from bbo_teams.models import OPPS_SEAT_PLANS, Team
 from bbo_teams.state import state
@@ -490,11 +490,6 @@ class AppFrame:
         self.boards_per_round.set(match.boards_per_round)
         for i, deal_file in enumerate(match.deal_files):
             self.deal_files[i].set(deal_file)
-
-        errors = validate_data(match)
-        if errors:
-            messagebox.showerror("Error", "\n".join(errors))
-            return
 
         self._on_round_number_change()
         self.button_frame.enable()
