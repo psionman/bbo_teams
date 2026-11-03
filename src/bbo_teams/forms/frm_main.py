@@ -4,7 +4,7 @@
 
 import os
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, messagebox, ttk
 
 from psiutils.constants import PAD, FileTypes
 from psiutils.utilities import restore_geometry, window_resize
@@ -39,6 +39,17 @@ class AppFrame:
         self.opps_pairs = []
         self.match = None
 
+        self.bbo_logins = {
+            0: {
+                "username": os.environ["BBO_USERNAME_1"],
+                "password": os.environ["BBO_PASSWORD_1"],
+            },
+            1: {
+                "username": os.environ["BBO_USERNAME_2"],
+                "password": os.environ["BBO_PASSWORD_2"],
+            },
+        }
+
         # tk variables
         self.workbook_path = tk.StringVar(value=state.workbook)
         self.club_name = tk.StringVar(value="")
@@ -61,6 +72,10 @@ class AppFrame:
         self.section_seats_E = [tk.StringVar(value="") for team in range(2)]
         self.section_seats_W = [tk.StringVar(value="") for team in range(2)]
         self.deal_files = [tk.StringVar(value="") for _ in range(4)]
+        self.bbo_usernames = {
+            0: tk.StringVar(value=self.bbo_logins[0]["username"]),
+            1: tk.StringVar(value=self.bbo_logins[1]["username"]),
+        }
 
         # Trace
         self.workbook_path.trace_add("write", self._value_changed)
@@ -123,6 +138,12 @@ class AppFrame:
         row += 1
         round_number_frame = self._round_number_frame(frame)
         round_number_frame.grid(row=row, column=0, columnspan=2, sticky=tk.EW)
+
+        row += 1
+        section_number_frame = self._section_number_frame(frame)
+        section_number_frame.grid(
+            row=row, column=0, columnspan=2, sticky=tk.EW
+        )
 
         row += 1
         round_display_frame = self._round_display_frame(frame)
@@ -275,10 +296,25 @@ class AppFrame:
                 row=row, column=column, sticky=tk.W, padx=PAD, pady=PAD
             )
             column += 1
+        frame.columnconfigure(column, weight=1)
 
-        column += 1
+        return frame
+
+    def _section_number_frame(self, master: tk.Frame) -> tk.Frame:
+        frame = tk.Frame(master)
+        frame.columnconfigure(0, weight=1)
+
+        row = 0
+        column = 1
         label = ttk.Label(frame, text="Section number")
-        label.grid(row=row, column=column, sticky=tk.E, padx=PAD, pady=PAD)
+        label.grid(
+            row=row,
+            column=column,
+            sticky=tk.NS,
+            padx=PAD,
+            pady=PAD,
+        )
+
         column += 1
         for section in range(2):
             button = ttk.Radiobutton(
@@ -288,12 +324,16 @@ class AppFrame:
                 value=section,
                 command=self._on_round_number_change,
             )
-            button.grid(
-                row=row, column=column, sticky=tk.W, padx=PAD, pady=PAD
-            )
-            column += 1
+            button.grid(row=row, column=column, sticky=tk.W, padx=PAD)
 
-        row += 1
+            data = ttk.Label(
+                frame,
+                textvariable=self.bbo_usernames[section],
+                relief=tk.SUNKEN,
+            )
+            data.grid(row=row, column=column + 1, sticky=tk.W)
+            row += 1
+
         column += 1
         frame.columnconfigure(column, weight=1)
 
@@ -440,9 +480,6 @@ class AppFrame:
         match = get_match_data(path)
         self.match = match
 
-        match.username = os.environ["BBO_USERNAME"]
-        match.password = os.environ["BBO_PASSWORD"]
-
         self.club_name.set(match.club_name)
         self.opponents_club_name.set(match.opponents_club_name)
         self.match_date.set(match.match_date.strftime("%d %B %Y"))
@@ -486,6 +523,10 @@ class AppFrame:
             self.our_pairs[1 + section * 2].player_b.username
         )
 
+        # Set username and password depending on section
+        self.match.username = self.bbo_logins[section]["username"]
+        self.match.password = self.bbo_logins[section]["password"]
+
         # Set opponent seats based on seat plan
         # The opps pair number comes fomr the seat plan
         round = self.round_number.get()
@@ -527,14 +568,36 @@ class AppFrame:
         session.seat_teams(match)
 
     def _upload_deal_files(self, *args) -> None:
-        session = self._get_session()
-        session.upload_deal_files(self.match)
-        self._dismiss()
+        usernames = []
+        for section in range(2):
+            username = self.bbo_logins[section]["username"]
+            self.match.username = username
+            self.match.password = self.bbo_logins[section]["password"]
+            if username not in usernames:
+                session = self._get_session()
+                session.upload_deal_files(self.match)
+                session.close()
+                usernames.append(username)
+        messagebox.showinfo(
+            "Upload Deal Files",
+            f"Deal files uploaded successfully for {', '.join(usernames)}",
+        )
 
     def _add_players(self, *args) -> None:
-        session = self._get_session()
-        session.add_players(self.match)
-        self._dismiss()
+        usernames = []
+        for section in range(2):
+            username = self.bbo_logins[section]["username"]
+            self.match.username = username
+            self.match.password = self.bbo_logins[section]["password"]
+            if username not in usernames:
+                session = self._get_session()
+                session.add_players(self.match)
+                session.close()
+                usernames.append(username)
+        messagebox.showinfo(
+            "Add Players",
+            f"Players added successfully for {', '.join(usernames)}",
+        )
 
     def _get_session(self) -> BboSession:
         """Reuse the open session, or replace one you have closed."""

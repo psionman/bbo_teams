@@ -8,12 +8,12 @@ import sys
 import tkinter as tk
 
 from dotenv import load_dotenv
-from forms.frm_main import AppFrame
 from psiutils.utilities import display_icon
 from psiutils.widgets import get_styles
 
 from bbo_teams import __app_name__, __version__
 from bbo_teams.constants import APP_TITLE, ICON_FILE
+from bbo_teams.forms.frm_main import AppFrame
 from bbo_teams.module_caller import ModuleCaller
 
 load_dotenv()

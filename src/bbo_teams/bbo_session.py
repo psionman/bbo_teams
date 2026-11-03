@@ -1,4 +1,5 @@
 import re
+import time
 from pathlib import Path
 
 from playwright.sync_api import Error as PlaywrightError
@@ -34,32 +35,8 @@ TAG_INPUT_JS = """([value, tag]) => {
 }"""
 
 
-def upload_deal_files(self, match: Match) -> None:
-    self.login(match)
-    page = self.page
-
-    page.get_by_text("Account").nth(2).click()
-    page.get_by_text("Deal archive").click()
-
-    try:
-        page.get_by_text(FIXED_FOLDER, exact=True).wait_for(timeout=20000)
-    except PlaywrightTimeoutError as error:
-        raise BboError("The deal archive did not load.") from error
-
-    for deal_file in match.deal_files:
-        self._create_named_folder(deal_file)
-        self._import_lin_file(deal_file)
-
-
 def _exact(text: str) -> re.Pattern[str]:
     return re.compile(rf"^\s*{re.escape(text)}\s*$")
-
-
-def _first_difference(before: list[str], after: list[str]) -> int:
-    for index, name in enumerate(after):
-        if index >= len(before) or before[index] != name:
-            return index
-    return len(after) - 1
 
 
 def accept_cookies(page: Page) -> None:
@@ -213,6 +190,7 @@ class BboSession:
 
         hand_popup = page.locator("hand-folder-select-popup")
         hand_popup.wait_for()
+
         # If deal file misspelled can be handled manually
         hand_popup.get_by_text(match.deal_file).click()
         hand_popup.get_by_role("button", name="Select", exact=True).click()
@@ -248,6 +226,10 @@ class BboSession:
         Path("page.html").write_text(page.content())
         print("done", flush=True)
 
+    # =========================================================================
+    # Add players methods
+    # =========================================================================
+
     def add_players(self, match: Match):
         self.login(match)
         page = self.page
@@ -255,12 +237,14 @@ class BboSession:
         for pair in [*match.our_pairs, *match.opps_pairs]:
             self._add_username(pair.player_a.username)
             self._add_username(pair.player_b.username)
+        page.close()
 
     def _add_username(self, username: str) -> None:
         page = self.page
         page.get_by_role("textbox", name="Add Friend").click()
-        page.get_by_role("textbox", name="Add Friend").fill(username)
+        page.get_by_role("textbox", name="Add Friend").fill("psionman")
         page.get_by_role("button", name="Add").click()
+        print(f"Added {username}", flush=True)
 
     # =========================================================================
     # Deal file upload methods
@@ -270,8 +254,16 @@ class BboSession:
         """Import each .lin file into a folder named after it."""
         self.login(match)
         self._open_deal_archive()
+
+        existing = set(self._settled_folder_names())
         for deal_file in match.deal_files:
+            if deal_file in existing:
+                print(
+                    f"Skipping {deal_file}: folder already exists", flush=True
+                )
+                continue
             self._import_into_new_folder(deal_file)
+            existing.add(deal_file)
         self.page.wait_for_timeout(500)
         self.page.close()
 
@@ -299,6 +291,23 @@ class BboSession:
 
         page.locator(ADD).first.click()
         expect(self._default_rows().first).to_be_visible(timeout=20000)
+
+    def _folder_names(self) -> list[str]:
+        return [n.strip() for n in self.page.locator(NAMES).all_inner_texts()]
+
+    def _settled_folder_names(self, stable_ms: int = 1000) -> list[str]:
+        """Return folder names once the list has stopped changing."""
+        last = self._folder_names()
+        stable_since = time.monotonic()
+        deadline = stable_since + 10
+        while time.monotonic() < deadline:
+            self.page.wait_for_timeout(100)
+            current = self._folder_names()
+            if current != last:
+                last, stable_since = current, time.monotonic()
+            elif (time.monotonic() - stable_since) * 1000 >= stable_ms:
+                break
+        return last
 
     def _default_rows(self) -> Locator:
         return self.page.locator(ROWS).filter(has_text=DEFAULT_NAME)
@@ -377,6 +386,7 @@ class BboSession:
         box.evaluate("el => el.removeAttribute('data-target')")
         page.locator(DONE).click()
 
+        # At least one folder has the new name (an older one may exist too)
         expect(
-            page.locator(NAMES).filter(has_text=_exact(name))
-        ).to_have_count(1)
+            page.locator(NAMES).filter(has_text=_exact(name)).first
+        ).to_be_visible()

@@ -46,7 +46,7 @@ requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "platformdirs", specifier = ">=4.13.0" },
-    { name = "playwright", specifier = ">=1.64.1" },
+    { name = "playwright", specifier = "==1.64.1" },
     { name = "psiutils", editable = "../../psi-utilities/psiutils" },
 ]
 
