@@ -2,7 +2,6 @@
 
 """AppFrame for BBO Team setup."""
 
-import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -13,7 +12,7 @@ from bbo_teams.bbo_session import BboSession
 from bbo_teams.buttons import ButtonFrame, IconButton
 from bbo_teams.config import config
 from bbo_teams.constants import APP_TITLE, DEFAULT_GEOMETRY
-from bbo_teams.data_store import get_match_data
+from bbo_teams.data_store import get_match_data, validate_data
 from bbo_teams.main_menu import MainMenu
 from bbo_teams.models import OPPS_SEAT_PLANS, Team
 from bbo_teams.state import state
@@ -39,17 +38,6 @@ class AppFrame:
         self.opps_pairs = []
         self.match = None
 
-        self.bbo_logins = {
-            0: {
-                "username": os.environ["BBO_USERNAME_1"],
-                "password": os.environ["BBO_PASSWORD_1"],
-            },
-            1: {
-                "username": os.environ["BBO_USERNAME_2"],
-                "password": os.environ["BBO_PASSWORD_2"],
-            },
-        }
-
         # tk variables
         self.workbook_path = tk.StringVar(value=state.workbook)
         self.club_name = tk.StringVar(value="")
@@ -73,18 +61,16 @@ class AppFrame:
         self.section_seats_W = [tk.StringVar(value="") for team in range(2)]
         self.deal_files = [tk.StringVar(value="") for _ in range(4)]
         self.bbo_usernames = {
-            0: tk.StringVar(value=self.bbo_logins[0]["username"]),
-            1: tk.StringVar(value=self.bbo_logins[1]["username"]),
+            0: tk.StringVar(value=""),
+            1: tk.StringVar(value=""),
         }
 
-        # Trace
-        self.workbook_path.trace_add("write", self._value_changed)
-
+        self.errors = []
         self._show()
         if state.workbook:
-            self._display_main_frame()
             self._open_workbook(state.workbook)
-            self._value_changed()
+            if not self.errors:
+                self._display_main_frame()
 
     def _show(self):
         root = self.root
@@ -310,9 +296,10 @@ class AppFrame:
         label.grid(
             row=row,
             column=column,
-            sticky=tk.NS,
+            # sticky=tk.NS,
             padx=PAD,
             pady=PAD,
+            rowspan=2,
         )
 
         column += 1
@@ -454,13 +441,6 @@ class AppFrame:
             frame.icon_button("cancel", self._dismiss),
         ]
 
-    def _value_changed(self, *args) -> bool:
-        """
-        Determine whether any configuration value has changed.
-        """
-        enable = self.workbook_path.get() != ""
-        self.button_frame.enable(enable)
-
     def _get_workbook(self) -> str:
         initialdir = config.teams_directory
         path = filedialog.askopenfilename(
@@ -477,7 +457,12 @@ class AppFrame:
             state.save()
 
     def _open_workbook(self, path: str) -> None:
-        match = get_match_data(path)
+        match, errors = get_match_data(path)
+        if errors:
+            self.errors = errors
+            messagebox.showerror("Error", "\n".join(errors))
+            return
+
         self.match = match
 
         self.club_name.set(match.club_name)
@@ -485,6 +470,8 @@ class AppFrame:
         self.match_date.set(match.match_date.strftime("%d %B %Y"))
         self.our_pairs = match.our_pairs
         self.opps_pairs = match.opps_pairs
+        self.bbo_usernames[0].set(match.bbo_usernames[0])
+        self.bbo_usernames[1].set(match.bbo_usernames[1])
 
         # Populate our pairs
         for i, pair in enumerate(match.our_pairs):
@@ -504,7 +491,13 @@ class AppFrame:
         for i, deal_file in enumerate(match.deal_files):
             self.deal_files[i].set(deal_file)
 
+        errors = validate_data(match)
+        if errors:
+            messagebox.showerror("Error", "\n".join(errors))
+            return
+
         self._on_round_number_change()
+        self.button_frame.enable()
 
     def _on_round_number_change(self) -> None:
         self.round_display.set(self.round_number.get() + 1)
@@ -522,10 +515,6 @@ class AppFrame:
         self.section_seats_W[OUR_TEAM].set(
             self.our_pairs[1 + section * 2].player_b.username
         )
-
-        # Set username and password depending on section
-        self.match.username = self.bbo_logins[section]["username"]
-        self.match.password = self.bbo_logins[section]["password"]
 
         # Set opponent seats based on seat plan
         # The opps pair number comes fomr the seat plan
@@ -570,9 +559,9 @@ class AppFrame:
     def _upload_deal_files(self, *args) -> None:
         usernames = []
         for section in range(2):
-            username = self.bbo_logins[section]["username"]
+            username = self.match.bbo_usernames[section]
             self.match.username = username
-            self.match.password = self.bbo_logins[section]["password"]
+            self.match.password = self.match.bbo_passwords[section]
             if username not in usernames:
                 session = self._get_session()
                 session.upload_deal_files(self.match)
@@ -586,9 +575,9 @@ class AppFrame:
     def _add_players(self, *args) -> None:
         usernames = []
         for section in range(2):
-            username = self.bbo_logins[section]["username"]
+            username = self.match.bbo_usernames[section]
             self.match.username = username
-            self.match.password = self.bbo_logins[section]["password"]
+            self.match.password = self.match.bbo_passwords[section]
             if username not in usernames:
                 session = self._get_session()
                 session.add_players(self.match)

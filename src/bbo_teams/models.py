@@ -38,6 +38,8 @@ class Match:
     description_text: str = ""
     username: str = ""
     password: str = ""
+    bbo_usernames: list[str] = None
+    bbo_passwords: list[str] = None
 
     @property
     def title(self) -> str:

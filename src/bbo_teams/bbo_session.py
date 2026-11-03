@@ -242,7 +242,7 @@ class BboSession:
     def _add_username(self, username: str) -> None:
         page = self.page
         page.get_by_role("textbox", name="Add Friend").click()
-        page.get_by_role("textbox", name="Add Friend").fill("psionman")
+        page.get_by_role("textbox", name="Add Friend").fill(username)
         page.get_by_role("button", name="Add").click()
         print(f"Added {username}", flush=True)
 

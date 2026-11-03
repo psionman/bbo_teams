@@ -27,7 +27,8 @@ def get_named_range_values(path: str) -> dict:
                     else:  # multiple rows
                         values.append([c.value for c in row])
 
-        # Store single value or list depending on how many cells the name covers
+        # Store single value or list depending on how
+        # many cells the name covers
         result[name] = values[0] if len(values) == 1 else values
 
     return result
