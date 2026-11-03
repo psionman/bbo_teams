@@ -8,11 +8,10 @@ import sys
 import tkinter as tk
 
 from dotenv import load_dotenv
-from psiutils.utilities import display_icon
 from psiutils.widgets import get_styles
 
 from bbo_teams import __app_name__, __version__
-from bbo_teams.constants import APP_TITLE, ICON_FILE
+from bbo_teams.constants import APP_TITLE, ICON_ICO, ICON_PNG
 from bbo_teams.forms.frm_main import AppFrame
 from bbo_teams.module_caller import ModuleCaller
 
@@ -29,7 +28,10 @@ PARSER_ARGS = (
 def main() -> None:
     root = tk.Tk()
     root.title(APP_TITLE)
-    display_icon(root, ICON_FILE, ignore_error=True)
+    if sys.platform == "win32":
+        root.iconbitmap(default=str(ICON_ICO))
+    else:
+        root.iconphoto(True, tk.PhotoImage(file=str(ICON_PNG)))
 
     root.protocol("WM_DELETE_WINDOW", root.destroy)
 
