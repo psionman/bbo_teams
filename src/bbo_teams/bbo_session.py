@@ -25,7 +25,7 @@ DONE = 'img[src$="done.svg"]'
 MODAL = "modal-content"
 FIXED_FOLDER = "My favorite hands"
 UPLOADED_TO = re.compile(r"uploaded into folder:(.+?) for username")
-
+DELETE = 'img[src$="delete.svg"]'
 
 TAG_INPUT_JS = """([value, tag]) => {
     const box = [...document.querySelectorAll('input')]
@@ -390,3 +390,127 @@ class BboSession:
         expect(
             page.locator(NAMES).filter(has_text=_exact(name)).first
         ).to_be_visible()
+
+    def remove_deal_files(self, match: Match) -> None:
+        """Remove deal files from BBO."""
+        self.login(match)
+        self._open_deal_archive()
+
+        folder_names = match.deal_files.copy()
+        folder_names.append(DEFAULT_NAME)
+        self._delete_deal_folders(folder_names, dry_run=False)
+
+    def _delete_deal_folders(
+        self, names: list[str], dry_run: bool = True
+    ) -> None:
+        """Delete every folder whose name is in `names`.
+
+        With dry_run=True (the default) nothing is deleted; it only
+        reports what would be.
+        """
+        existing = self._settled_folder_names()
+
+        for name in names:
+            if name == FIXED_FOLDER:
+                print(f"Refusing to delete {name!r}", flush=True)
+                continue
+            found = existing.count(name)
+            if found == 0:
+                print(f"Not found: {name}", flush=True)
+                continue
+            if dry_run:
+                print(f"Would delete {found} x {name}", flush=True)
+                continue
+            deleted = self._delete_folder(name)
+            print(f"Deleted {deleted} x {name}", flush=True)
+
+    def _delete_folder(self, name: str) -> int:
+        """Delete every folder called `name`; return how many went."""
+        page = self.page
+        rows = page.locator(ROWS).filter(has_text=_exact(name))
+        deleted = 0
+
+        while rows.count() and deleted < 20:  # Cap guards against a loop
+            before = rows.count()
+            rows.first.locator(DELETE).click()
+
+            # BBO asks for confirmation
+            page.get_by_role("button", name="Yes", exact=True).click()
+
+            # Wait until the row has really gone before looking again
+            expect(rows).to_have_count(before - 1)
+            deleted += 1
+        return deleted
+
+    def remove_players(self, match: Match) -> None:
+        """Remove players from BBO."""
+        self.login(match)
+        usernames = [
+            username
+            for pair in [*match.our_pairs, *match.opps_pairs]
+            for username in (pair.player_a.username, pair.player_b.username)
+        ]
+        self._open_people()
+        for username in usernames:
+            self._remove_username(username)
+
+    def _open_people(self) -> None:
+        """Open People and make sure the toggle is switched on."""
+        page = self.page
+        page.get_by_text("People").first.click()
+
+        toggle = page.locator("ion-toggle")
+        toggle.wait_for()
+        if not toggle.evaluate("el => el.checked"):  # Click only if off
+            toggle.click()
+        page.wait_for_function(
+            "() => document.querySelector('ion-toggle')?.checked",
+            timeout=5000,
+        )
+
+    def _remove_username(self, username: str) -> None:
+        """Unfollow one player, skipping anyone who isn't in the list."""
+        page = self.page
+        player = page.get_by_role(
+            "button",
+            name=re.compile(f"^{re.escape(username)}$", re.IGNORECASE),
+        )
+        try:
+            player.wait_for(timeout=1000)
+        except PlaywrightTimeoutError:
+            print(f"Not in the list: {username}", flush=True)
+            return
+        print(f"Found player: {player}", flush=True)
+
+        player.click(button="right")
+        page.get_by_role("menuitem", name="Unfollow", exact=True).click()
+        expect(player).to_have_count(0)  # Gone from the list
+        print(f"Unfollowed {username}", flush=True)
+
+    def list_people(self) -> list[str]:
+        """Return the names in the People list, in the order shown."""
+        page = self.page
+        before = set(self._button_names())  # Lobby buttons, menus and so on
+
+        self._open_people()
+        page.wait_for_timeout(1000)  # Let the list render
+
+        # Players are buttons too, so keep only the ones that are new
+        names = [n for n in self._button_names() if n not in before]
+        return list(dict.fromkeys(names))  # Remove duplicates, keep order
+
+    def _button_names(self) -> list[str]:
+        """Return the first line of every visible button's text."""
+        texts = self.page.get_by_role("button").all_inner_texts()
+        return [t.strip().split("\n")[0] for t in texts if t.strip()]
+
+
+def get_session(existing_session: BboSession = None) -> BboSession:
+    """Reuse the open session, or replace one you have closed."""
+    session = existing_session
+    if session is not None and not session.is_alive():
+        session.close()  # Stops Playwright, so a new start() works
+        session = None
+    if session is None:
+        session = BboSession()
+    return session

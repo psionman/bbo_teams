@@ -1,7 +1,7 @@
 [project]
 name = "bbo_teams"
 version = "0.0.0"
-description = "Set up BBO for a teans of 8 match."
+description = "Set up BBO for a teams of 8 match."
 authors = [
     {name = "Jeff", email = "jeffwatkins2000@gmail.com"}
 ]

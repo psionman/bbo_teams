@@ -8,7 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 from psiutils.constants import PAD, FileTypes
 from psiutils.utilities import restore_geometry, window_resize
 
-from bbo_teams.bbo_session import BboSession
+from bbo_teams.bbo_session import get_session
 from bbo_teams.buttons import ButtonFrame, IconButton
 from bbo_teams.config import config
 from bbo_teams.constants import APP_TITLE, DEFAULT_GEOMETRY
@@ -155,7 +155,9 @@ class AppFrame:
         entry = ttk.Entry(frame, textvariable=self.workbook_path)
         entry.grid(row=row, column=1, sticky=tk.EW)
 
-        button = IconButton(frame, txt.OPEN, "open-folder", self._get_workbook)
+        button = IconButton(
+            frame, txt.BROWSE, "file-find-outline", self._get_workbook
+        )
         button.grid(row=row, column=2, padx=PAD)
 
         return frame
@@ -212,8 +214,6 @@ class AppFrame:
                 sticky=tk.EW,
                 padx=PAD,
             )
-
-        return frame
 
         return frame
 
@@ -550,8 +550,8 @@ class AppFrame:
             west=self.section_seats_W[OPPONENTS_TEAM].get(),
         )
 
-        session = self._get_session()
-        session.seat_teams(match)
+        self.session = get_session(self.session)
+        self.session.seat_teams(match)
 
     def _upload_deal_files(self, *args) -> None:
         usernames = []
@@ -560,7 +560,7 @@ class AppFrame:
             self.match.username = username
             self.match.password = self.match.bbo_passwords[section]
             if username not in usernames:
-                session = self._get_session()
+                session = get_session(self.session)
                 session.upload_deal_files(self.match)
                 session.close()
                 usernames.append(username)
@@ -576,7 +576,7 @@ class AppFrame:
             self.match.username = username
             self.match.password = self.match.bbo_passwords[section]
             if username not in usernames:
-                session = self._get_session()
+                session = get_session(self.session)
                 session.add_players(self.match)
                 session.close()
                 usernames.append(username)
@@ -584,17 +584,6 @@ class AppFrame:
             "Add Players",
             f"Players added successfully for {', '.join(usernames)}",
         )
-
-    def _get_session(self) -> BboSession:
-        """Reuse the open session, or replace one you have closed."""
-        session = self.session
-        if session is not None and not session.is_alive():
-            session.close()  # Stops Playwright, so a new start() works
-            session = None
-        if session is None:
-            session = BboSession()
-        self.session = session
-        return session
 
     def _dismiss(self, *args) -> None:
         self.root.destroy()

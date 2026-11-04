@@ -4,6 +4,7 @@
 A tkinter application for BBO Team setup.
 """
 
+import os
 import sys
 import tkinter as tk
 
@@ -16,7 +17,8 @@ from bbo_teams.forms.frm_main import AppFrame
 from bbo_teams.module_caller import ModuleCaller
 
 load_dotenv()
-
+if sys.platform == "linux":
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
 
 PARSER_ARGS = (
     ("module", "Module to load"),
