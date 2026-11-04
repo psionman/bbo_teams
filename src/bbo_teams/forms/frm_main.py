@@ -528,6 +528,8 @@ class AppFrame:
             self.opps_pairs[seat_plan[1]].player_b.username
         )
         self.deal_file_display.set(self.match.deal_files[round])
+        self.match.username = self.match.bbo_usernames[section]
+        self.match.password = self.match.bbo_passwords[section]
 
     def _seat_teams(self, *args) -> None:
         match = self.match
