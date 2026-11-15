@@ -67,6 +67,7 @@ class AppFrame:
 
         self.errors = []
         self._show()
+
         if state.workbook:
             self._open_workbook(state.workbook)
             if not self.errors:
@@ -436,7 +437,10 @@ class AppFrame:
             ),
             account_button,
             frame.icon_button(
-                "upload", self._upload_deal_files, True, text="Upload files"
+                "upload",
+                self._upload_deal_files,
+                True,
+                text="Upload deal files",
             ),
             frame.icon_button("cancel", self._dismiss),
         ]

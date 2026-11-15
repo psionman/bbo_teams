@@ -16,15 +16,16 @@ class BboPlayers:
         for pair in [*match.our_pairs, *match.opps_pairs]:
             self._add_username(pair.player_a.username)
             self._add_username(pair.player_b.username)
-        page.close()
+        # page.close()
 
     def _add_username(self, username: str) -> None:
+        # NB you may have to reload the People page on BBO to see the names
         page = self.page
         page.get_by_role("textbox", name="Add Friend").click()
         page.get_by_role("textbox", name="Add Friend").fill(username)
         page.get_by_role("button", name="Add").click()
         print(f"Added {username}", flush=True)
-        page.wait_for_timeout(100)
+        page.wait_for_timeout(250)
 
     def remove_players(self, match: Match) -> None:
         """Remove players from BBO."""
