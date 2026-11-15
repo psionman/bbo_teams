@@ -11,7 +11,6 @@ class BboSeatTeams:
         pass
 
     def seat_teams(self, match: Match):
-        self.login(match)
         page = self.page
 
         self._open_team_matches()

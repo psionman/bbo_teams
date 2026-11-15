@@ -41,7 +41,6 @@ class BboDealFiles:
 
     def import_deal_files(self, match: Match) -> None:
         """Import each .lin file into a folder named after it."""
-        self.login(match)
         self._open_deal_archive()
 
         existing = set(self._settled_folder_names())
