@@ -14,3 +14,4 @@ wheels/
 # Misc
 TODO.py
 tmp/
+bbo_session.json

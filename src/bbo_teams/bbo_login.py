@@ -1,0 +1,58 @@
+import re
+
+from playwright.sync_api import Error as PlaywrightError
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+
+from bbo_teams.config import config
+from bbo_teams.models import Match
+
+COOKIE_BUTTON = re.compile(r"accept|agree|allow", re.IGNORECASE)
+COOKIE_TIMEOUT = 1000
+
+
+class BboError(Exception):
+    """A problem talking to BBO, with a message fit to show the user."""
+
+
+class BboLogin:
+    def __init__(self, page):
+        self.page = page
+
+    def login(self, match: Match) -> None:
+        page = self.page
+        try:
+            page.goto(
+                config.login_url, wait_until="domcontentloaded", timeout=30000
+            )
+            page.locator("#username").wait_for(timeout=15000)
+        except PlaywrightTimeoutError as error:
+            self.close()
+            raise BboError(
+                "BBO did not load in time. Check your connection and "
+                "try again."
+            ) from error
+        except PlaywrightError as error:
+            self.close()
+            raise BboError(f"Could not reach BBO: {error}") from error
+
+        self._accept_cookies()
+
+        self._enter_credentials(match.username, match.password)
+        page.wait_for_url(lambda url: "/auth/login" not in url)
+        page.add_style_tag(content="body { zoom: 75%; }")
+
+        self.logged_in = True
+
+    def _enter_credentials(self, username: str, password: str) -> None:
+        page = self.page
+        page.locator("#username").fill(username)
+        page.locator("#password").fill(password)
+        page.locator("#password").press("Enter")
+
+    def _accept_cookies(self) -> None:
+        """Click the cookie consent button if one appears."""
+        button = self.page.get_by_role("button", name=COOKIE_BUTTON).first
+        try:
+            button.click(timeout=COOKIE_TIMEOUT)
+        except PlaywrightTimeoutError:
+            pass  # No banner this time

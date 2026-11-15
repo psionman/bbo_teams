@@ -1,51 +1,15 @@
-import re
-import time
 from pathlib import Path
 
 from playwright.sync_api import Error as PlaywrightError
-from playwright.sync_api import Locator, Page, expect, sync_playwright
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
 
-from bbo_teams.config import config
-from bbo_teams.models import Match, Team
+from bbo_teams.bbo_deal_files import BboDealFiles
+from bbo_teams.bbo_login import BboLogin
+from bbo_teams.bbo_players import BboPlayers
+from bbo_teams.bbo_seat_teams import BboSeatTeams
+from bbo_teams.models import Match
 
 SESSION_FILE = Path("bbo_session.json")
-
-
-COOKIE_BUTTON = re.compile(r"accept|agree|allow", re.IGNORECASE)
-COOKIE_TIMEOUT = 1000
-SEATS = ("north", "east", "south", "west")
-
-DEFAULT_NAME = "Untitled folder"
-ROWS = ".listItem"
-NAMES = f"{ROWS} p"
-ADD = 'img[src="assets/icons/add.svg"]'
-EDIT = 'img[src$="edit.svg"]'
-DONE = 'img[src$="done.svg"]'
-MODAL = "modal-content"
-FIXED_FOLDER = "My favorite hands"
-UPLOADED_TO = re.compile(r"uploaded into folder:(.+?) for username")
-DELETE = 'img[src$="delete.svg"]'
-
-TAG_INPUT_JS = """([value, tag]) => {
-    const box = [...document.querySelectorAll('input')]
-        .find(e => e.value === value);
-    if (box) box.setAttribute('data-target', tag);
-    return !!box;
-}"""
-
-
-def _exact(text: str) -> re.Pattern[str]:
-    return re.compile(rf"^\s*{re.escape(text)}\s*$")
-
-
-def accept_cookies(page: Page) -> None:
-    """Click the cookie consent button if one appears."""
-    button = page.get_by_role("button", name=COOKIE_BUTTON).first
-    try:
-        button.click(timeout=COOKIE_TIMEOUT)
-    except PlaywrightTimeoutError:
-        pass  # No banner this time
 
 
 class BboError(Exception):
@@ -70,6 +34,7 @@ class BboSession:
 
         cdp = self._context.new_cdp_session(self.page)
         cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 0.75})
+        self._context.storage_state(path=SESSION_FILE)
 
     def is_alive(self) -> bool:
         """True while the browser window is still open and responding."""
@@ -91,140 +56,24 @@ class BboSession:
             except PlaywrightError:
                 pass  # Already closed, for example by you
 
+    # =========================================================================
+    # Login
+    # =========================================================================
+
     def login(self, match: Match) -> None:
-        page = self.page
         if self.logged_in:
             return
-        try:
-            page.goto(
-                config.login_url, wait_until="domcontentloaded", timeout=30000
-            )
-            page.locator("#username").wait_for(timeout=15000)
-        except PlaywrightTimeoutError as error:
-            self.close()
-            raise BboError(
-                "BBO did not load in time. Check your connection and "
-                "try again."
-            ) from error
-        except PlaywrightError as error:
-            self.close()
-            raise BboError(f"Could not reach BBO: {error}") from error
+        bbo_login = BboLogin(self.page)
+        bbo_login.login(match)
 
-        accept_cookies(page)
-
-        self._enter_credentials(match.username, match.password)
-        page.wait_for_url(lambda url: "/auth/login" not in url)
-        page.add_style_tag(content="body { zoom: 75%; }")
-        self._context.storage_state(path=SESSION_FILE)
-
-        self.logged_in = True
-
-    def _enter_credentials(self, username: str, password: str) -> None:
-        page = self.page
-        page.locator("#username").fill(username)
-        page.locator("#password").fill(password)
-        page.locator("#password").press("Enter")
+    # =========================================================================
+    # Seat teams methods
+    # =========================================================================
 
     def seat_teams(self, match: Match):
         self.login(match)
-        page = self.page
-
-        self._open_team_matches()
-        page.get_by_role(
-            "button", name="Create Team Match", exact=True
-        ).click()
-        popup = page.locator("team-match-properties-popup")
-
-        self._complete_identity(popup, match)
-        self._complete_options(page, popup, match)
-        self._complete_seats(popup, match)
-
-    def _open_team_matches(self) -> None:
-        """Get to the Team Matches screen from wherever the session is."""
-        page = self.page
-        create = page.get_by_role(
-            "button", name="Create Team Match", exact=True
-        )
-        if create.is_visible():
-            return  # Already on the Team Matches screen
-
-        lobby_button = page.get_by_role(
-            "button", name="Team Matches", exact=True
-        )
-        if not lobby_button.is_visible():
-            page.get_by_role(
-                "button", name="Lobby"
-            ).click()  # The →Lobby button
-        lobby_button.click()
-        expect(create).to_be_visible()
-
-    def _complete_identity(self, popup: Locator, match: Match):
-        popup.get_by_role("textbox").first.wait_for()
-        popup.get_by_role("tab", name="Identification").click()
-        popup.get_by_label("Title").fill(match.title)
-        popup.get_by_label("Description").fill(match.description_text)
-        popup.get_by_role("textbox", name="Team 1").fill(match.club_name)
-        popup.get_by_role("textbox", name="Team 2").fill(
-            match.opponents_club_name
-        )
-
-    def _complete_options(self, page: Page, popup: Locator, match: Match):
-
-        popup.get_by_role("tab", name="Options").click()
-        popup.get_by_role("radio", name="IMPs").check()
-        popup.get_by_role("spinbutton", name="Number of Boards").fill(
-            match.boards_per_round
-        )
-
-        popup.get_by_role(
-            "checkbox", name="Allow kibitzers", exact=True
-        ).uncheck()
-        popup.get_by_role(
-            "checkbox", name="Allow kibitzers to chat with players"
-        ).uncheck()
-        popup.get_by_role("checkbox", name="Allow Undos").uncheck()
-        popup.get_by_role("checkbox", name="Barometer scoring").uncheck()
-
-        popup.get_by_role("radio", name="Use saved deals").click()
-        popup.get_by_role("button", name="Select folder").click()
-
-        hand_popup = page.locator("hand-folder-select-popup")
-        hand_popup.wait_for()
-
-        # If deal file misspelled can be handled manually
-        hand_popup.get_by_text(match.deal_file).click()
-        hand_popup.get_by_role("button", name="Select", exact=True).click()
-        hand_popup.locator("#modal-content-1").get_by_role(
-            "button", name="Close"
-        )
-
-    def _fill_seats(self, popup: Locator, team: Team, group: int) -> None:
-        """Fill one team's four seats; group 0 is the first set shown."""
-        for seat in SEATS:
-            popup.get_by_placeholder(seat.title(), exact=True).nth(group).fill(
-                getattr(team, seat)
-            )
-
-    def _complete_seats(self, popup: Locator, match: Match) -> None:
-        popup.get_by_role("tab", name="Reserve seats").click()
-        self._fill_seats(popup, match.our_team, group=0)
-        self._fill_seats(popup, match.opps_team, group=1)
-
-    def print_tags(self):
-        page = self.page
-        page.wait_for_timeout(2000)
-        page.screenshot(path="after_click.png")
-
-        tags = page.evaluate(
-            """() => [...new Set(
-                [...document.querySelectorAll('*')]
-                    .map(e => e.tagName.toLowerCase())
-                    .filter(t => t.includes('-'))
-            )]"""
-        )
-        Path("tags.txt").write_text("\n".join(sorted(tags)))
-        Path("page.html").write_text(page.content())
-        print("done", flush=True)
+        seat_teams = BboSeatTeams(self.page)
+        seat_teams.seat_teams(match)
 
     # =========================================================================
     # Add players methods
@@ -232,277 +81,22 @@ class BboSession:
 
     def add_players(self, match: Match):
         self.login(match)
-        page = self.page
-        page.get_by_text("People").first.click()
-        for pair in [*match.our_pairs, *match.opps_pairs]:
-            self._add_username(pair.player_a.username)
-            self._add_username(pair.player_b.username)
-        page.close()
+        bbo_players = BboPlayers(self.page)
+        bbo_players.add_players(match)
 
-    def _add_username(self, username: str) -> None:
-        page = self.page
-        page.get_by_role("textbox", name="Add Friend").click()
-        page.get_by_role("textbox", name="Add Friend").fill(username)
-        page.get_by_role("button", name="Add").click()
-        print(f"Added {username}", flush=True)
+    def remove_players(self, match: Match):
+        self.login(match)
+        bbo_players = BboPlayers(self.page)
+        bbo_players.remove_players(match)
 
     # =========================================================================
     # Deal file upload methods
     # =========================================================================
 
     def upload_deal_files(self, match: Match) -> None:
-        """Import each .lin file into a folder named after it."""
         self.login(match)
-        self._open_deal_archive()
-
-        existing = set(self._settled_folder_names())
-        for deal_file in match.deal_files:
-            if deal_file in existing:
-                print(
-                    f"Skipping {deal_file}: folder already exists", flush=True
-                )
-                continue
-            self._import_into_new_folder(deal_file)
-            existing.add(deal_file)
-        self.page.wait_for_timeout(500)
-        self.page.close()
-
-    def _open_deal_archive(self) -> None:
-        """Open the archive and press "+" so the folder list appears."""
-        page = self.page
-        page.locator("tab-bar-button:visible").filter(
-            has_text="Account"
-        ).click()
-
-        tab = page.get_by_role("tab", name="Deal archive")
-        arrow = page.locator(".mat-mdc-tab-header-pagination-after")
-        for _ in range(4):  # The tab strip scrolls sideways
-            try:
-                tab.click(timeout=2000)
-                break
-            except PlaywrightTimeoutError:
-                arrow.click(timeout=2000)
-        else:
-            raise BboError("Could not open the Deal archive tab.")
-        expect(tab).to_have_attribute("aria-selected", "true")
-        page.get_by_role("heading", name="SELECT FOLDER").wait_for(
-            timeout=20000
-        )
-
-        page.locator(ADD).first.click()
-        expect(self._default_rows().first).to_be_visible(timeout=20000)
-
-    def _folder_names(self) -> list[str]:
-        return [n.strip() for n in self.page.locator(NAMES).all_inner_texts()]
-
-    def _settled_folder_names(self, stable_ms: int = 1000) -> list[str]:
-        """Return folder names once the list has stopped changing."""
-        last = self._folder_names()
-        stable_since = time.monotonic()
-        deadline = stable_since + 10
-        while time.monotonic() < deadline:
-            self.page.wait_for_timeout(100)
-            current = self._folder_names()
-            if current != last:
-                last, stable_since = current, time.monotonic()
-            elif (time.monotonic() - stable_since) * 1000 >= stable_ms:
-                break
-        return last
-
-    def _default_rows(self) -> Locator:
-        return self.page.locator(ROWS).filter(has_text=DEFAULT_NAME)
-
-    def _import_into_new_folder(self, deal_file: str) -> None:
-        page = self.page
-        rows = self._default_rows()
-        if rows.count() == 0:
-            page.locator(ADD).first.click()
-            expect(rows.first).to_be_visible()
-
-        # Click a default-named folder, as you do by hand
-        folder_name = rows.first.locator("p").inner_text().strip()
-        rows.first.locator("p").click()
-
-        button = page.get_by_role("button", name="Import LIN file")
-        expect(button).to_be_enabled(timeout=10000)
-        button.click()
-
-        uploaded_to = self._upload(deal_file)
-        if uploaded_to == deal_file:
-            return  # BBO made the folder from the folder-name box
-        if uploaded_to != folder_name:
-            raise BboError(
-                f"Import went to {uploaded_to!r}, not {folder_name!r}."
-            )
-        self._rename_default_folder(folder_name, deal_file)
-
-    def _upload(self, deal_file: str) -> str:
-        """Upload the .lin file; return the folder BBO says it used."""
-        page = self.page
-        frame = page.locator(f"{MODAL} iframe").content_frame
-        file_input = frame.locator('input[name="srcfile"]')
-        file_input.wait_for(timeout=10000)
-
-        # With nothing selected the form has a folder-name box; use it
-        title = frame.locator('input[name="title"]')
-        if title.count():
-            title.fill(deal_file)
-
-        file_input.set_input_files(
-            Path(config.deal_directory, f"{deal_file}.lin")
-        )
-        frame.locator('input[name="Import"]').evaluate("el => el.click()")
-
-        body = frame.locator("body")
-        try:
-            expect(body).to_contain_text(
-                "uploaded into folder:", timeout=30000
-            )
-        except AssertionError as error:
-            raise BboError(
-                f"No upload confirmation:\n{body.inner_text()[:300]}"
-            ) from error
-        result = body.inner_text()
-
-        page.get_by_role("button", name="Close", description="Close").click()
-        expect(page.locator(MODAL)).to_have_count(0)
-
-        found = UPLOADED_TO.search(result)
-        if not found:
-            raise BboError(f"Could not read BBO's reply:\n{result[:300]}")
-        return found.group(1).strip()
-
-    def _rename_default_folder(self, default_name: str, name: str) -> None:
-        """Rename the first default-named folder to `name`."""
-        page = self.page
-        self._default_rows().first.locator(EDIT).click()
-
-        page.wait_for_function(
-            TAG_INPUT_JS, arg=[default_name, "folder-name"], timeout=5000
-        )
-        box = page.locator('[data-target="folder-name"]')
-        box.fill(name)
-        expect(box).to_have_value(name)
-        box.evaluate("el => el.removeAttribute('data-target')")
-        page.locator(DONE).click()
-
-        # At least one folder has the new name (an older one may exist too)
-        expect(
-            page.locator(NAMES).filter(has_text=_exact(name)).first
-        ).to_be_visible()
-
-    def remove_deal_files(self, match: Match) -> None:
-        """Remove deal files from BBO."""
-        self.login(match)
-        self._open_deal_archive()
-
-        folder_names = match.deal_files.copy()
-        folder_names.append(DEFAULT_NAME)
-        self._delete_deal_folders(folder_names, dry_run=False)
-
-    def _delete_deal_folders(
-        self, names: list[str], dry_run: bool = True
-    ) -> None:
-        """Delete every folder whose name is in `names`.
-
-        With dry_run=True (the default) nothing is deleted; it only
-        reports what would be.
-        """
-        existing = self._settled_folder_names()
-
-        for name in names:
-            if name == FIXED_FOLDER:
-                print(f"Refusing to delete {name!r}", flush=True)
-                continue
-            found = existing.count(name)
-            if found == 0:
-                print(f"Not found: {name}", flush=True)
-                continue
-            if dry_run:
-                print(f"Would delete {found} x {name}", flush=True)
-                continue
-            deleted = self._delete_folder(name)
-            print(f"Deleted {deleted} x {name}", flush=True)
-
-    def _delete_folder(self, name: str) -> int:
-        """Delete every folder called `name`; return how many went."""
-        page = self.page
-        rows = page.locator(ROWS).filter(has_text=_exact(name))
-        deleted = 0
-
-        while rows.count() and deleted < 20:  # Cap guards against a loop
-            before = rows.count()
-            rows.first.locator(DELETE).click()
-
-            # BBO asks for confirmation
-            page.get_by_role("button", name="Yes", exact=True).click()
-
-            # Wait until the row has really gone before looking again
-            expect(rows).to_have_count(before - 1)
-            deleted += 1
-        return deleted
-
-    def remove_players(self, match: Match) -> None:
-        """Remove players from BBO."""
-        self.login(match)
-        usernames = [
-            username
-            for pair in [*match.our_pairs, *match.opps_pairs]
-            for username in (pair.player_a.username, pair.player_b.username)
-        ]
-        self._open_people()
-        for username in usernames:
-            self._remove_username(username)
-
-    def _open_people(self) -> None:
-        """Open People and make sure the toggle is switched on."""
-        page = self.page
-        page.get_by_text("People").first.click()
-
-        toggle = page.locator("ion-toggle")
-        toggle.wait_for()
-        if not toggle.evaluate("el => el.checked"):  # Click only if off
-            toggle.click()
-        page.wait_for_function(
-            "() => document.querySelector('ion-toggle')?.checked",
-            timeout=5000,
-        )
-
-    def _remove_username(self, username: str) -> None:
-        """Unfollow one player, skipping anyone who isn't in the list."""
-        page = self.page
-        player = page.get_by_role(
-            "button",
-            name=re.compile(f"^{re.escape(username)}$", re.IGNORECASE),
-        )
-        try:
-            player.wait_for(timeout=1000)
-        except PlaywrightTimeoutError:
-            print(f"Not in the list: {username}", flush=True)
-            return
-        print(f"Found player: {player}", flush=True)
-
-        player.click(button="right")
-        page.get_by_role("menuitem", name="Unfollow", exact=True).click()
-        expect(player).to_have_count(0)  # Gone from the list
-        print(f"Unfollowed {username}", flush=True)
-
-    def list_people(self) -> list[str]:
-        """Return the names in the People list, in the order shown."""
-        page = self.page
-        before = set(self._button_names())  # Lobby buttons, menus and so on
-
-        self._open_people()
-        page.wait_for_timeout(1000)  # Let the list render
-
-        # Players are buttons too, so keep only the ones that are new
-        names = [n for n in self._button_names() if n not in before]
-        return list(dict.fromkeys(names))  # Remove duplicates, keep order
-
-    def _button_names(self) -> list[str]:
-        """Return the first line of every visible button's text."""
-        texts = self.page.get_by_role("button").all_inner_texts()
-        return [t.strip().split("\n")[0] for t in texts if t.strip()]
+        deal_files = BboDealFiles(self.page)
+        deal_files.import_deal_files(match)
 
 
 def get_session(existing_session: BboSession = None) -> BboSession:
