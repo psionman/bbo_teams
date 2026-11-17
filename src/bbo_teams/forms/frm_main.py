@@ -37,6 +37,9 @@ class AppFrame:
         self.our_pairs = []
         self.opps_pairs = []
         self.match = None
+        self.our_players_frame = None
+        self.opps_players_frame = None
+        self.users_online = []
 
         # tk variables
         self.workbook_path = tk.StringVar(value=state.workbook)
@@ -73,6 +76,8 @@ class AppFrame:
             if not self.errors:
                 self._display_main_frame()
 
+        self._populate_players_frames()
+
     def _show(self):
         root = self.root
         restore_geometry(root, state, __file__, default=DEFAULT_GEOMETRY)
@@ -91,11 +96,11 @@ class AppFrame:
 
         self.button_frame = self._button_frame(root)
         self.button_frame.grid(
-            row=8, column=0, columnspan=9, sticky=tk.EW, padx=PAD, pady=PAD
+            row=1, column=1, rowspan=9, sticky=tk.NS, padx=PAD, pady=PAD
         )
 
         sizegrip = ttk.Sizegrip(root)
-        sizegrip.grid(column=0, sticky=tk.SE)
+        sizegrip.grid(column=99, sticky=tk.SE)
 
         root.update_idletasks()
         root.bind("<Control-x>", self._dismiss)
@@ -223,21 +228,15 @@ class AppFrame:
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=1)
         row = 0
-        players_frame = self._player_list_frame(
-            frame,
-            "Our players",
-            self.our_pairs_names,
-            self.our_pairs_usernames,
+        self.our_players_frame = tk.Frame(
+            frame, relief=tk.SUNKEN, borderwidth=2
         )
-        players_frame.grid(row=row, column=0, sticky=tk.EW)
+        self.our_players_frame.grid(row=row, column=0, sticky=tk.EW)
 
-        players_frame = self._player_list_frame(
-            frame,
-            "Opponent's players",
-            self.opps_pairs_names,
-            self.opps_pairs_usernames,
+        self.opps_players_frame = tk.Frame(
+            frame, relief=tk.SUNKEN, borderwidth=2
         )
-        players_frame.grid(row=row, column=1, sticky=tk.EW)
+        self.opps_players_frame.grid(row=row, column=1, sticky=tk.EW)
         return frame
 
     def _player_list_frame(
@@ -255,12 +254,55 @@ class AppFrame:
 
         row += 1
         for i in range(8):
-            label = ttk.Label(frame, textvariable=names_var[i])
+            if usernames_var[i].get() not in self.users_online:
+                label = ttk.Label(
+                    frame, textvariable=names_var[i], foreground="red"
+                )
+            else:
+                label = ttk.Label(frame, textvariable=names_var[i])
             label.grid(row=row + i, column=0, sticky=tk.EW, padx=PAD)
-            label = ttk.Label(frame, textvariable=usernames_var[i])
+
+            if usernames_var[i].get() not in self.users_online:
+                label = ttk.Label(
+                    frame, textvariable=usernames_var[i], foreground="red"
+                )
+            else:
+                label = ttk.Label(frame, textvariable=usernames_var[i])
             label.grid(row=row + i, column=1, sticky=tk.EW)
 
         return frame
+
+    def _populate_player_frame(
+        self,
+        frame: tk.Frame,
+        heading: str,
+        names_var: list[tk.StringVar],
+        usernames_var: list[tk.StringVar],
+    ):
+        for widget in frame.winfo_children():
+            widget.destroy()
+
+        row = 0
+        label = ttk.Label(frame, text=heading)
+        label.grid(row=row, column=0, columnspan=2, padx=PAD, pady=PAD)
+
+        row += 1
+        for i in range(8):
+            if usernames_var[i].get() not in self.users_online:
+                label = ttk.Label(
+                    frame, textvariable=names_var[i], foreground="red"
+                )
+            else:
+                label = ttk.Label(frame, textvariable=names_var[i])
+            label.grid(row=row + i, column=0, sticky=tk.EW, padx=PAD)
+
+            if usernames_var[i].get() not in self.users_online:
+                label = ttk.Label(
+                    frame, textvariable=usernames_var[i], foreground="red"
+                )
+            else:
+                label = ttk.Label(frame, textvariable=usernames_var[i])
+            label.grid(row=row + i, column=1, sticky=tk.EW)
 
     def _round_number_frame(self, master: tk.Frame) -> tk.Frame:
         frame = tk.Frame(master)
@@ -418,7 +460,7 @@ class AppFrame:
         return frame
 
     def _button_frame(self, master: tk.Frame) -> tk.Frame:
-        frame = ButtonFrame(master, tk.HORIZONTAL)
+        frame = ButtonFrame(master, tk.VERTICAL)
         frame.buttons = self._frame_buttons(frame)
         frame.disable()
         return frame
@@ -442,6 +484,7 @@ class AppFrame:
                 True,
                 text="Upload deal files",
             ),
+            frame.icon_button("check", self._players_online),
             frame.icon_button("cancel", self._dismiss),
         ]
 
@@ -587,6 +630,37 @@ class AppFrame:
         messagebox.showinfo(
             "Add Players",
             f"Players added successfully for {', '.join(usernames)}",
+        )
+
+    def _players_online(self, *args) -> None:
+        usernames = []
+        pairs = [self.match.our_pairs, self.match.opps_pairs]
+        for pair_list in pairs:
+            for pair in pair_list:
+                usernames.append(pair.player_a.username)
+                usernames.append(pair.player_b.username)
+
+        session = get_session(self.session)
+        self.users_online = session.check_players_online(self.match)
+        session.close()
+        for username in usernames:
+            if username in self.users_online:
+                print(f"Player {username} is online")
+        self._populate_players_frames()
+
+    def _populate_players_frames(self) -> None:
+        self._populate_player_frame(
+            self.our_players_frame,
+            "Our players",
+            self.our_pairs_names,
+            self.our_pairs_usernames,
+        )
+
+        self._populate_player_frame(
+            self.opps_players_frame,
+            "Opponent players",
+            self.opps_pairs_names,
+            self.opps_pairs_names,
         )
 
     def _dismiss(self, *args) -> None:

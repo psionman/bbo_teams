@@ -90,6 +90,24 @@ class BboSession:
         bbo_players.remove_players(match)
 
     # =========================================================================
+    # Check players on-line
+    # =========================================================================
+
+    def check_players_online(self, match: Match) -> list[str]:
+        self.login(match)
+        bbo_players = BboPlayers(self.page)
+        return bbo_players.list_people()
+
+    # =========================================================================
+    # Send message to players on-line
+    # =========================================================================
+
+    def send_message(self, match: Match, text: str) -> list[str]:
+        self.login(match)
+        bbo_players = BboPlayers(self.page)
+        return bbo_players.send_message(text)
+
+    # =========================================================================
     # Deal file upload methods
     # =========================================================================
 

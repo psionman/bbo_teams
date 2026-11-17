@@ -76,7 +76,8 @@ class BboPlayers:
         page = self.page
         before = set(self._button_names())  # Lobby buttons, menus and so on
 
-        self._open_people()
+        page = self.page
+        page.get_by_text("People").first.click()
         page.wait_for_timeout(1000)  # Let the list render
 
         # Players are buttons too, so keep only the ones that are new
