@@ -47,7 +47,7 @@ requires-dist = [
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "platformdirs", specifier = ">=4.13.0" },
     { name = "playwright", specifier = "==1.64.1" },
-    { name = "psiutils", editable = "../../psi-utilities/psiutils" },
+    { name = "psiutils", specifier = ">=2.0.5" },
 ]
 
 [package.metadata.requires-dev]
@@ -175,11 +175,11 @@ wheels = [
 
 [[package]]
 name = "markdown"
-version = "3.11.2"
+version = "3.11.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f4/32/0b4d0297064244f04af4331b65de16237cc3cce07474171ee14222a28981/markdown-3.11.2.tar.gz", hash = "sha256:87bf5d90f2d2882e2c02fcda182c2800456b985bff38913867c49706481514b0", size = 491445, upload-time = "2026-10-19T19:41:42.687Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/eb/dc0fd6eff604bfb870b7fb68b90985a32caaf3c76f67736bbf7f438acd59/markdown-3.11.3.tar.gz", hash = "sha256:81eb91631dc97ad1efbc76019ef0f80fe90ca49ddf81546752d79989c3bfff3e", size = 498810, upload-time = "2026-11-05T20:30:52.926Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/66/bcab3b677b71ad286b4e607e3427499537c76e13ad2e22584ba7a7d9882c/markdown-3.11.2-py3-none-any.whl", hash = "sha256:f80390747a2a0ff2ba54da074ce4f862f72a6685f608cd2637b646a6d83993f5", size = 114266, upload-time = "2026-10-19T19:41:41.244Z" },
+    { url = "https://files.pythonhosted.org/packages/81/6f/1fa8970e960e5c832874399e6efa564870ade8206d57fef5d5e296b834f5/markdown-3.11.3-py3-none-any.whl", hash = "sha256:e1a31a112232504d753e5c01bb8c2de90d3f0ba986b063e10770cf7695b09e73", size = 116758, upload-time = "2026-11-05T20:30:51.775Z" },
 ]
 
 [[package]]
@@ -345,8 +345,8 @@ wheels = [
 
 [[package]]
 name = "psiutils"
-version = "2.0.4"
-source = { editable = "../../psi-utilities/psiutils" }
+version = "2.0.5"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appdirs" },
     { name = "iniconfig" },
@@ -367,31 +367,10 @@ dependencies = [
     { name = "tomli" },
     { name = "tomli-w" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "appdirs", specifier = ">=1.4.4" },
-    { name = "iniconfig", specifier = ">=2.1.0" },
-    { name = "markdown", specifier = ">=3.8.2" },
-    { name = "packaging", specifier = ">=25.0" },
-    { name = "pillow", specifier = ">=11.3.0" },
-    { name = "pluggy", specifier = ">=1.6.0" },
-    { name = "psi-toml", specifier = ">=0.0.12" },
-    { name = "psiconfig", specifier = ">=0.0.14" },
-    { name = "pycairo", specifier = ">=1.28.0" },
-    { name = "pygments", specifier = ">=2.19.2" },
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "ruff", specifier = ">=0.15.15" },
-    { name = "structlog", specifier = ">=25.4.0" },
-    { name = "tkcalendar", specifier = ">=1.6.1" },
-    { name = "tkinterweb", specifier = ">=4.4.4" },
-    { name = "tkinterweb-tkhtml", specifier = ">=1.1.1" },
-    { name = "tomli", specifier = ">=2.2.1" },
-    { name = "tomli-w", specifier = ">=1.2.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/96/fe/0ec3570190ccbd96f18d096a0e4a5516d421c227bae776263517b0e2f417/psiutils-2.0.5.tar.gz", hash = "sha256:79a483a5ab1594509000f6ea8c118d9ff2db1a5fea173e6526a5aa496da6324d", size = 238643, upload-time = "2026-11-18T12:16:48.757Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/09/609820060d35ffcc695ca97c1fdcb579de80ad4885f99806756279f26b19/psiutils-2.0.5-py3-none-any.whl", hash = "sha256:c340326d634d216d38fe99ec5db29e26549ca39a632b16b9b907d522a9dfea4b", size = 266718, upload-time = "2026-11-18T12:16:47.351Z" },
 ]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest" }]
 
 [[package]]
 name = "pycairo"

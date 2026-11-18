@@ -641,18 +641,13 @@ class AppFrame:
         )
 
     def _players_online(self, *args) -> None:
-        usernames = []
-        pairs = [self.match.our_pairs, self.match.opps_pairs]
-        for pair_list in pairs:
-            for pair in pair_list:
-                usernames.append(pair.player_a.username)
-                usernames.append(pair.player_b.username)
-
         self.session = get_session(self.session)
-        self.users_online = self.session.check_players_online(self.match)
-        for username in usernames:
-            if username in self.users_online:
-                print(f"Player {username} is online")
+        online_names = self.session.check_players_online(self.match)
+        users_online = []
+        for username in self.match.all_usernames:
+            if username in online_names:
+                users_online.append(username)
+        self.users_online = users_online
         self._populate_players_frames()
 
     def _populate_players_frames(self) -> None:
@@ -667,7 +662,7 @@ class AppFrame:
             self.opps_players_frame,
             "Opponent players",
             self.opps_pairs_names,
-            self.opps_pairs_names,
+            self.opps_pairs_usernames,
         )
 
     def _send_chat(self, *args) -> None:

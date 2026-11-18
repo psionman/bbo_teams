@@ -73,25 +73,18 @@ class BboPlayers:
     def list_users_online(self) -> list[str]:
         """Return the names in the People list, in the order shown."""
         page = self.page
-        before = set(self._button_names())  # Lobby buttons, menus and so on
 
-        page = self.page
         page.get_by_text("People").first.click()
-        page.wait_for_timeout(1000)  # Let the list render
+        page.wait_for_timeout(1000)  # Let the list load
 
-        # Players are buttons too, so keep only the ones that are new
-        names = [n for n in self._button_names() if n not in before]
-        names = self._button_names()
-        print(f"Users online: {names}", flush=True)
-        return list(dict.fromkeys(names))  # Remove duplicates, keep order
+        texts = self.page.get_by_role("button").all_inner_texts()
+        return [t.strip().split("\n")[0] for t in texts if t.strip()]
 
     def send_message(self, match: Match, text: str) -> list[str]:
         """Send a message to all players in the People list."""
         page = self.page
         page.get_by_text("People").first.click()
         page.wait_for_timeout(1000)  # Let the list render
-        online_users = self.list_users_online()
-        print(f"Online users: {online_users}", flush=True)
 
         for username in match.recipients:
             try:
@@ -112,8 +105,3 @@ class BboPlayers:
                 "button", name="Close", description="Close"
             ).click()
             expect(modal).to_have_count(0)
-
-    def _button_names(self) -> list[str]:
-        """Return the first line of every visible button's text."""
-        texts = self.page.get_by_role("button").all_inner_texts()
-        return [t.strip().split("\n")[0] for t in texts if t.strip()]

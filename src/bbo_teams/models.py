@@ -49,6 +49,15 @@ class Match:
             f"Round {self.round} - Section {self.section}"
         )
 
+    @property
+    def all_usernames(self) -> list[str]:
+        usernames = []
+        pairs = self.our_pairs + self.opps_pairs
+        for pair in pairs:
+            usernames.append(pair.player_a.username)
+            usernames.append(pair.player_b.username)
+        return usernames
+
 
 # Seat plans for opponents
 # Key: (round, section)
