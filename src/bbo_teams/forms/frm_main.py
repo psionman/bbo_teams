@@ -473,10 +473,14 @@ class AppFrame:
             self._add_players,
             True,
         )
+        check_button = IconButton(
+            frame,
+            "Check players online",
+            "account-multiple-check",
+            self._players_online,
+            True,
+        )
         return [
-            frame.icon_button(
-                "build", self._seat_teams, True, text="Seat teams"
-            ),
             account_button,
             frame.icon_button(
                 "upload",
@@ -484,7 +488,11 @@ class AppFrame:
                 True,
                 text="Upload deal files",
             ),
-            frame.icon_button("check", self._players_online),
+            frame.icon_button(
+                "build", self._seat_teams, True, text="Seat teams"
+            ),
+            check_button,
+            frame.icon_button("mail-send", self._send_chat, text="Send chat"),
             frame.icon_button("cancel", self._dismiss),
         ]
 
@@ -640,9 +648,8 @@ class AppFrame:
                 usernames.append(pair.player_a.username)
                 usernames.append(pair.player_b.username)
 
-        session = get_session(self.session)
-        self.users_online = session.check_players_online(self.match)
-        session.close()
+        self.session = get_session(self.session)
+        self.users_online = self.session.check_players_online(self.match)
         for username in usernames:
             if username in self.users_online:
                 print(f"Player {username} is online")
@@ -662,6 +669,11 @@ class AppFrame:
             self.opps_pairs_names,
             self.opps_pairs_names,
         )
+
+    def _send_chat(self, *args) -> None:
+        self.match.recipients = ["psionman", "fregge"]
+        self.session = get_session(self.session)
+        self.session.send_message(self.match, "Hello again from BBO Teams!")
 
     def _dismiss(self, *args) -> None:
         self.root.destroy()

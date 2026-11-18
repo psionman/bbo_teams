@@ -16,7 +16,6 @@ class BboPlayers:
         for pair in [*match.our_pairs, *match.opps_pairs]:
             self._add_username(pair.player_a.username)
             self._add_username(pair.player_b.username)
-        # page.close()
 
     def _add_username(self, username: str) -> None:
         # NB you may have to reload the People page on BBO to see the names
@@ -71,7 +70,7 @@ class BboPlayers:
         expect(player).to_have_count(0)  # Gone from the list
         print(f"Unfollowed {username}", flush=True)
 
-    def list_people(self) -> list[str]:
+    def list_users_online(self) -> list[str]:
         """Return the names in the People list, in the order shown."""
         page = self.page
         before = set(self._button_names())  # Lobby buttons, menus and so on
@@ -82,7 +81,37 @@ class BboPlayers:
 
         # Players are buttons too, so keep only the ones that are new
         names = [n for n in self._button_names() if n not in before]
+        names = self._button_names()
+        print(f"Users online: {names}", flush=True)
         return list(dict.fromkeys(names))  # Remove duplicates, keep order
+
+    def send_message(self, match: Match, text: str) -> list[str]:
+        """Send a message to all players in the People list."""
+        page = self.page
+        page.get_by_text("People").first.click()
+        page.wait_for_timeout(1000)  # Let the list render
+        online_users = self.list_users_online()
+        print(f"Online users: {online_users}", flush=True)
+
+        for username in match.recipients:
+            try:
+                page.get_by_role("button", name=username).first.click()
+            except Exception as e:
+                print(f"Failed to click on {username}: {e}", flush=True)
+                continue
+
+            modal = page.locator("modal-content")
+            popup = modal.locator("profile-popup")
+            popup.wait_for(timeout=10000)
+
+            chat_box = popup.locator("input.chatInputClass")
+            chat_box.fill(text)
+            popup.get_by_role("button", name="Chat", exact=True).click()
+
+            modal.get_by_role(
+                "button", name="Close", description="Close"
+            ).click()
+            expect(modal).to_have_count(0)
 
     def _button_names(self) -> list[str]:
         """Return the first line of every visible button's text."""

@@ -55,6 +55,7 @@ class BboSession:
                 step()
             except PlaywrightError:
                 pass  # Already closed, for example by you
+        self.logged_in = False
 
     # =========================================================================
     # Login
@@ -65,6 +66,7 @@ class BboSession:
             return
         bbo_login = BboLogin(self.page)
         bbo_login.login(match)
+        self.logged_in = True
 
     # =========================================================================
     # Seat teams methods
@@ -96,7 +98,7 @@ class BboSession:
     def check_players_online(self, match: Match) -> list[str]:
         self.login(match)
         bbo_players = BboPlayers(self.page)
-        return bbo_players.list_people()
+        return bbo_players.list_users_online()
 
     # =========================================================================
     # Send message to players on-line
@@ -105,7 +107,7 @@ class BboSession:
     def send_message(self, match: Match, text: str) -> list[str]:
         self.login(match)
         bbo_players = BboPlayers(self.page)
-        return bbo_players.send_message(text)
+        return bbo_players.send_message(match, text)
 
     # =========================================================================
     # Deal file upload methods

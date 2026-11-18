@@ -40,6 +40,7 @@ class Match:
     password: str = ""
     bbo_usernames: list[str] = None
     bbo_passwords: list[str] = None
+    recipients: list[str] = None
 
     @property
     def title(self) -> str:
