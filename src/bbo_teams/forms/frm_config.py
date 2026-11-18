@@ -126,6 +126,24 @@ class ConfigFrame:
         entry = ttk.Entry(frame, textvariable=self.description_text)
         entry.grid(row=row, column=1, sticky=tk.EW)
 
+        row += 1
+        check_button = ttk.Checkbutton(
+            frame,
+            text="Disable sound",
+            variable=self.disable_sound,
+        )
+
+        check_button.grid(row=row, column=1, sticky=tk.W)
+
+        row += 1
+        check_button = ttk.Checkbutton(
+            frame,
+            text="Disable vugraph",
+            variable=self.disable_vugraph,
+        )
+
+        check_button.grid(row=row, column=1, sticky=tk.W)
+
         return frame
 
     def _button_frame(self, master: tk.Frame) -> tk.Frame:
@@ -196,6 +214,10 @@ class ConfigFrame:
             return
         for field in FIELDS:
             getattr(self, field).set(config.config[field])
+
+    def _on_disable_vugraph_changed(self) -> None:
+        # self.disable_vugraph.set(not self.disable_vugraph.get())
+        print(f"Disable vugraph changed to {self.disable_vugraph.get()}")
 
     def _dismiss(self, *args) -> None:
         """

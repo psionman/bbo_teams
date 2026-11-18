@@ -41,6 +41,7 @@ class BboLogin:
         page.wait_for_url(lambda url: "/auth/login" not in url)
         page.add_style_tag(content="body { zoom: 75%; }")
 
+        self._set_preferences()
         self.logged_in = True
 
     def _enter_credentials(self, username: str, password: str) -> None:
@@ -56,3 +57,21 @@ class BboLogin:
             button.click(timeout=COOKIE_TIMEOUT)
         except PlaywrightTimeoutError:
             pass  # No banner this time
+
+    def _set_preferences(self) -> None:
+        """Set the preferences for the user."""
+        page = self.page
+        page.get_by_text("Account").nth(2).click()
+        page.get_by_role("tab", name="Settings").click()
+
+        if config.disable_sound:
+            page.locator("settings-list-item").filter(
+                has_text="Sound effects on"
+            ).locator("ion-toggle").click()
+
+        if config.disable_vugraph:
+            page.locator(
+                "div:nth-child(6) > settings-list-item:nth-child(3) > "
+                ".setting > .setting_line > .setting_toggle_button > "
+                ".ng-untouched"
+            ).click()
