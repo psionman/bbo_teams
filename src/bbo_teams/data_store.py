@@ -7,26 +7,24 @@ from bbo_teams.workbook import get_named_range_values
 
 
 def get_match_data(path: str) -> Match:
-    named_ranges = get_named_range_values(path)
     match = Match()
     named_ranges = get_named_range_values(path)
-
     match.club_name = named_ranges["club_name"]
     match.opponents_club_name = named_ranges["opposition_club"]
     match.match_date = _parse_date(named_ranges["match_date"])
-    match.deal_files = [deal[0] for deal in named_ranges["deal_files"]]
+    match.deal_files = named_ranges["deal_files"]
     bbo_logins = named_ranges["bbo_logins"]
 
     match.bbo_usernames = []
     match.bbo_passwords = []
-    match.bbo_usernames.append(bbo_logins[0][0])
-    match.bbo_passwords.append(bbo_logins[0][1])
-    if bbo_logins[1][0] and bbo_logins[1][1]:
-        match.bbo_usernames.append(bbo_logins[1][0])
-        match.bbo_passwords.append(bbo_logins[1][1])
+    match.bbo_usernames.append(bbo_logins[0])
+    match.bbo_passwords.append(bbo_logins[1])
+    if bbo_logins[2] and bbo_logins[3]:
+        match.bbo_usernames.append(bbo_logins[2])
+        match.bbo_passwords.append(bbo_logins[3])
     else:
-        match.bbo_usernames.append(bbo_logins[0][0])
-        match.bbo_passwords.append(bbo_logins[0][1])
+        match.bbo_usernames.append(bbo_logins[0])
+        match.bbo_passwords.append(bbo_logins[1])
 
     match.our_pairs = _get_pairs(named_ranges["our_players"])
     match.opps_pairs = _get_pairs(named_ranges["opps_players"])
@@ -37,16 +35,16 @@ def get_match_data(path: str) -> Match:
 
 def _get_pairs(players: list[tuple[str, str]]) -> list[Pair]:
     pairs = []
-    for i in range(0, len(players)):
+    for i in range(0, len(players), 4):
         pairs.append(
             Pair(
                 player_a=Player(
-                    name=players[i][0] or "",
-                    username=players[i][1],
+                    name=players[i] or "",
+                    username=players[i + 1],
                 ),
                 player_b=Player(
-                    name=players[i][2] or "",
-                    username=players[i][3],
+                    name=players[i + 2] or "",
+                    username=players[i + 3],
                 ),
             )
         )

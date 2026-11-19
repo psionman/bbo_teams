@@ -4,14 +4,10 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from bbo_teams.config import config
-from bbo_teams.models import Match
+from bbo_teams.models import Match, WebSessionError
 
 COOKIE_BUTTON = re.compile(r"accept|agree|allow", re.IGNORECASE)
 COOKIE_TIMEOUT = 1000
-
-
-class BboError(Exception):
-    """A problem talking to BBO, with a message fit to show the user."""
 
 
 class BboLogin:
@@ -27,13 +23,13 @@ class BboLogin:
             page.locator("#username").wait_for(timeout=15000)
         except PlaywrightTimeoutError as error:
             self.close()
-            raise BboError(
+            raise WebSessionError(
                 "BBO did not load in time. Check your connection and "
                 "try again."
             ) from error
         except PlaywrightError as error:
             self.close()
-            raise BboError(f"Could not reach BBO: {error}") from error
+            raise WebSessionError(f"Could not reach BBO: {error}") from error
 
         self._accept_cookies()
 

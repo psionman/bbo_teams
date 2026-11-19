@@ -6,14 +6,11 @@ from playwright.sync_api import sync_playwright
 from bbo_teams.bbo_deal_files import BboDealFiles
 from bbo_teams.bbo_login import BboLogin
 from bbo_teams.bbo_players import BboPlayers
+from bbo_teams.bbo_scoring import BboScore
 from bbo_teams.bbo_seat_teams import BboSeatTeams
 from bbo_teams.models import Match
 
 SESSION_FILE = Path("bbo_session.json")
-
-
-class BboError(Exception):
-    """A problem talking to BBO, with a message fit to show the user."""
 
 
 class BboSession:
@@ -117,6 +114,14 @@ class BboSession:
         self.login(match)
         deal_files = BboDealFiles(self.page)
         deal_files.import_deal_files(match)
+
+    # =========================================================================
+    # Scoring
+    # =========================================================================
+
+    def scoring(self, match: Match) -> dict[int, dict[int, float | None]]:
+        bbo_score = BboScore(self.page)
+        return bbo_score.scoring(match)
 
 
 def get_session(existing_session: BboSession = None) -> BboSession:

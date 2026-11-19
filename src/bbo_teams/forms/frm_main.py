@@ -17,6 +17,7 @@ from bbo_teams.main_menu import MainMenu
 from bbo_teams.models import OPPS_SEAT_PLANS, Team
 from bbo_teams.state import state
 from bbo_teams.text import Text
+from bbo_teams.workbook import update_scores
 
 txt = Text()
 WORKBOOK_PATH = (
@@ -77,6 +78,7 @@ class AppFrame:
                 self._display_main_frame()
 
         self._populate_players_frames()
+        # self._score()
 
     def _show(self):
         root = self.root
@@ -493,6 +495,7 @@ class AppFrame:
             ),
             check_button,
             frame.icon_button("mail-send", self._send_chat, text="Send chat"),
+            frame.icon_button("score", self._score, text="Score"),
             frame.icon_button("cancel", self._dismiss),
         ]
 
@@ -669,6 +672,12 @@ class AppFrame:
         self.match.recipients = ["psionman", "fregge"]
         self.session = get_session(self.session)
         self.session.send_message(self.match, "Hello again from BBO Teams!")
+
+    def _score(self, *args) -> None:
+        self.session = get_session(self.session)
+        scores = self.session.scoring(self.match)
+        self.session.close()
+        update_scores(state.workbook, scores)
 
     def _dismiss(self, *args) -> None:
         self.root.destroy()

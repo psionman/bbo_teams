@@ -6,7 +6,7 @@ from playwright.sync_api import Locator, Page, expect
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from bbo_teams.config import config
-from bbo_teams.models import Match
+from bbo_teams.models import Match, WebSessionError
 
 DEFAULT_NAME = "Untitled folder"
 ROWS = ".listItem"
@@ -29,10 +29,6 @@ TAG_INPUT_JS = """([value, tag]) => {
 
 def _exact(text: str) -> re.Pattern[str]:
     return re.compile(rf"^\s*{re.escape(text)}\s*$")
-
-
-class BboError(Exception):
-    """A problem talking to BBO, with a message fit to show the user."""
 
 
 class BboDealFiles:
@@ -71,7 +67,7 @@ class BboDealFiles:
             except PlaywrightTimeoutError:
                 arrow.click(timeout=2000)
         else:
-            raise BboError("Could not open the Deal archive tab.")
+            raise WebSessionError("Could not open the Deal archive tab.")
         expect(tab).to_have_attribute("aria-selected", "true")
         page.get_by_role("heading", name="SELECT FOLDER").wait_for(
             timeout=20000
@@ -119,7 +115,7 @@ class BboDealFiles:
         if uploaded_to == deal_file:
             return  # BBO made the folder from the folder-name box
         if uploaded_to != folder_name:
-            raise BboError(
+            raise WebSessionError(
                 f"Import went to {uploaded_to!r}, not {folder_name!r}."
             )
         self._rename_default_folder(folder_name, deal_file)
@@ -147,7 +143,7 @@ class BboDealFiles:
                 "uploaded into folder:", timeout=30000
             )
         except AssertionError as error:
-            raise BboError(
+            raise WebSessionError(
                 f"No upload confirmation:\n{body.inner_text()[:300]}"
             ) from error
         result = body.inner_text()
@@ -157,7 +153,9 @@ class BboDealFiles:
 
         found = UPLOADED_TO.search(result)
         if not found:
-            raise BboError(f"Could not read BBO's reply:\n{result[:300]}")
+            raise WebSessionError(
+                f"Could not read BBO's reply:\n{result[:300]}"
+            )
         return found.group(1).strip()
 
     def _rename_default_folder(self, default_name: str, name: str) -> None:

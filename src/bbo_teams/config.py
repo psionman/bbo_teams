@@ -16,6 +16,9 @@ FIELDS = {
     "boards_per_round": ConfigField(int, 6),
     "description_text": ConfigField(str, "+private+ +slow+"),
     "login_url": ConfigField(str, "https://www.bridgebase.com/v3/auth/login"),
+    "scoring_url": ConfigField(
+        str, "https://www.bridgebase.com/myhands/hands.php"
+    ),
     "disable_sound": ConfigField(bool, True),
     "disable_vugraph": ConfigField(bool, True),
 }

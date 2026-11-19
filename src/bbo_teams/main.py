@@ -31,7 +31,6 @@ PARSER_ARGS = (
 
 
 def main() -> None:
-
     root = tk.Tk()
     if state.workbook:
         errors = open_workbook(root, state.workbook)

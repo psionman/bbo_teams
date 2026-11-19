@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 
 
+class WebSessionError(Exception):
+    """A problem talking to BBO, with a message fit to show the user."""
+
+
 @dataclass
 class Player:
     name: str = ""
